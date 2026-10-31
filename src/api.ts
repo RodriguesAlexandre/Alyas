@@ -72,6 +72,7 @@ export const api = {
   revisao: () => chamar('rev').then(r => r.revision as number),
   salvar: (data: any, revision: number) => chamar('save', { data, revision }) as Promise<{ revision: number }>,
   ofertas: () => ofertasBH(),
+  assistente: (messages: { role: string; text: string }[], context: any) => chamar('ai', { messages, context }, 60000) as Promise<{ reply: string; actions: any[] }>,
   notas: () => chamar('receipts').then(r => r.notes as any[]),
 };
 

@@ -27,10 +27,11 @@ export const days=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
 export const key=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
 export function baseUnit(unit:string){return unit==='kg'?'g':unit==='L'?'ml':unit}
 export function baseQty(qty:number,unit:string){return qty*(unit==='kg'||unit==='L'?1000:1)}
-export function consolidate(plan:Record<string,any>,pantry:any[],profiles:any[]){
+export const allRecipes=(data:any):Recipe[]=>[...recipes,...((data?.customRecipes)||[])];
+export function consolidate(plan:Record<string,any>,pantry:any[],profiles:any[],lista:Recipe[]=recipes){
  const map=new Map<string,Ingredient>();
  for(const entry of Object.values(plan)){
-  const r=recipes.find(x=>x.id===entry.recipe);if(!r)continue;
+  const r=lista.find(x=>x.id===entry.recipe);if(!r)continue;
   const n=profiles.reduce((a,p)=>a+Number(p.portions||1),0);
   for(const ing of r.ingredients){const unit=baseUnit(ing.unit),k=key(ing.name)+'|'+unit,prev=map.get(k);map.set(k,{...ing,unit,qty:(prev?.qty||0)+baseQty(ing.qty,ing.unit)*n});}
  }

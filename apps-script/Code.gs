@@ -122,6 +122,7 @@ function tratar(p) {
     case 'save': return salvarCasa(p.data, p.revision);
     case 'offers': return ofertas();
     case 'receipts': return { ok: true, notes: NOTAS_SEED };
+    case 'ai': return assistente(p);
     default: return falha('Ação desconhecida.', 400);
   }
 }
@@ -196,6 +197,71 @@ function ofertas() {
   } catch (err) {
     return { ok: true, offers: [], source: source, checkedAt: new Date().toISOString(), error: 'Não conseguimos atualizar as ofertas do BH agora. Tente novamente ou consulte a fonte oficial.' };
   }
+}
+
+// ---------------- Assistente de IA (Gemini) ----------------
+// A chave fica só nas Propriedades do script (Configurações do projeto → Propriedades do script → GEMINI_KEY).
+const IA_MODELOS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+const IA_ACOES = ['add_to_list', 'remove_from_list', 'mark_in_cart', 'set_supply', 'plan_meal', 'clear_meal', 'create_recipe', 'plan_to_list', 'set_budget'];
+
+function assistente(p) {
+  const props = PropertiesService.getScriptProperties();
+  const chave = props.getProperty('GEMINI_KEY');
+  if (!chave) return falha('IA ainda não ligada: falta a chave do Gemini.', 412);
+  const msgs = Array.isArray(p.messages) ? p.messages.slice(-12) : [];
+  if (!msgs.length) return falha('Mensagem vazia.', 400);
+  const ctx = JSON.stringify(p.context || {}).slice(0, 60000);
+  const sistema =
+    'Você é o assistente do AleYas, app da casa do Ale e da Yas (Belo Horizonte, compram no Supermercados BH). ' +
+    'Responda em português do Brasil, curto, caloroso e prático. ' +
+    'Você pode AGIR no app devolvendo ações. Use só ações quando o pedido for claro; para ideias, responda em texto e sugira. ' +
+    'Regras: nunca use camarão (alergia). Prefira receitas e ingredientes que estão em "catalogo" (o que a casa compra). ' +
+    'Para planejar uma refeição use plan_meal com recipe_id existente em "receitas"; se não existir, use create_recipe com ingredientes do catálogo e plan_day/plan_meal. ' +
+    'Dias: 0=segunda … 6=domingo. Refeições: "Café da manhã", "Almoço", "Lanche", "Jantar". ' +
+    'set_supply status: ok (tem em casa), low (acabando), out (acabou → também entra na lista). ' +
+    'Unidades válidas: un, g, kg, ml, L, fatia, pacote. Use nomes de produto exatamente como no catálogo quando existirem. ' +
+    'Contexto atual da casa (JSON): ' + ctx;
+  const schema = {
+    type: 'OBJECT',
+    properties: {
+      reply: { type: 'STRING' },
+      actions: { type: 'ARRAY', items: { type: 'OBJECT', properties: {
+        type: { type: 'STRING', enum: IA_ACOES },
+        product: { type: 'STRING' }, qty: { type: 'NUMBER' }, unit: { type: 'STRING' },
+        status: { type: 'STRING', enum: ['ok', 'low', 'out'] },
+        day: { type: 'INTEGER' }, meal: { type: 'STRING' }, recipe_id: { type: 'STRING' },
+        name: { type: 'STRING' }, value: { type: 'NUMBER' },
+        ingredients: { type: 'ARRAY', items: { type: 'OBJECT', properties: { name: { type: 'STRING' }, qty: { type: 'NUMBER' }, unit: { type: 'STRING' } }, required: ['name'] } },
+        steps: { type: 'ARRAY', items: { type: 'STRING' } },
+        plan_day: { type: 'INTEGER' }, plan_meal: { type: 'STRING' }
+      }, required: ['type'] } }
+    },
+    required: ['reply', 'actions']
+  };
+  const corpo = {
+    systemInstruction: { parts: [{ text: sistema }] },
+    contents: msgs.map(function (m) { return { role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.text || '').slice(0, 4000) }] }; }),
+    generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.6 }
+  };
+  const modelos = props.getProperty('GEMINI_MODEL') ? [props.getProperty('GEMINI_MODEL')] : IA_MODELOS;
+  let ultimoErro = '';
+  for (let i = 0; i < modelos.length; i++) {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelos[i] + ':generateContent', {
+      method: 'post', contentType: 'application/json', payload: JSON.stringify(corpo), muteHttpExceptions: true, headers: { 'x-goog-api-key': chave } });
+    const code = r.getResponseCode();
+    if (code === 404) { ultimoErro = 'modelo ' + modelos[i] + ' indisponível'; continue; }
+    if (code !== 200) { ultimoErro = 'Gemini respondeu ' + code + ': ' + r.getContentText().slice(0, 200); if (code === 400 || code === 403) break; continue; }
+    const j = JSON.parse(r.getContentText());
+    const txt = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(function (x) { return x.text || ''; }).join('');
+    try { const out = JSON.parse(txt); return { ok: true, reply: String(out.reply || ''), actions: Array.isArray(out.actions) ? out.actions.slice(0, 40) : [], model: modelos[i] }; }
+    catch (e) { return { ok: true, reply: String(txt || 'Não entendi, pode repetir?'), actions: [], model: modelos[i] }; }
+  }
+  return falha('Não consegui falar com a IA agora (' + ultimoErro + ').', 502);
+}
+
+/** Teste rápido da IA pelo editor: selecione e clique em Executar. */
+function testarIA() {
+  Logger.log(JSON.stringify(assistente({ messages: [{ role: 'user', text: 'Me dá uma ideia de jantar com o que a gente compra.' }], context: { catalogo: ['Peito de frango', 'Arroz', 'Brócolis', 'Creme de leite', 'Milho'] } })));
 }
 
 // ---------------- Abas legíveis (espelhos) ----------------
