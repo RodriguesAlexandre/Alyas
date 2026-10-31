@@ -71,7 +71,7 @@ export const api = {
   carregar: () => chamar('house') as Promise<{ data: any; revision: number }>,
   revisao: () => chamar('rev').then(r => r.revision as number),
   salvar: (data: any, revision: number) => chamar('save', { data, revision }) as Promise<{ revision: number }>,
-  ofertas: () => chamar('offers', undefined, 30000),
+  ofertas: () => ofertasBH(),
   notas: () => chamar('receipts').then(r => r.notes as any[]),
 };
 
@@ -81,3 +81,29 @@ export function lerCache(): { data: any; revision: number; dirty: boolean } | nu
   try { return JSON.parse(raw); } catch { return null; }
 }
 export function gravarCache(v: { data: any; revision: number; dirty: boolean }) { safeSet(CACHE_KEY, JSON.stringify(v)); }
+
+// Ofertas do Supermercados BH: buscadas direto pelo aparelho (o site do BH não responde aos servidores do Google).
+const OFERTAS_URL = 'https://superbh.app/site-api/api/mov-oferta/vigente?value=BELO+HORIZONTE%40MG&text=Belo+Horizonte+-+%28MG%29';
+const FONTE = 'https://www.supermercadosbh.com.br/';
+async function ofertasBH(): Promise<any> {
+  const agora = new Date().toISOString();
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 15000);
+  try {
+    const r = await fetch(OFERTAS_URL, { headers: { Accept: 'application/json' }, signal: ctrl.signal });
+    if (!r.ok) throw Error('fonte');
+    const json: any = await r.json(); const d = json.data;
+    if (!json.isValid) throw Error('inválida');
+    if (!d) return { offers: [], checkedAt: agora, source: FONTE, message: 'O BH não retornou ofertas vigentes para Belo Horizonte.' };
+    if (d.municipioNome !== 'BELO HORIZONTE' || !Array.isArray(d.produtoOfertas)) throw Error('região');
+    const ini = Date.parse(d.dataVigenciaInicio), fim = Date.parse(d.dataVigenciaFim), ativo = Date.now() >= ini && Date.now() <= fim;
+    return {
+      source: FONTE, checkedAt: agora, validFrom: d.dataVigenciaInicio, validUntil: d.dataVigenciaFim, region: 'Belo Horizonte · Minas Gerais', title: d.titulo,
+      message: ativo ? 'Ofertas regionais publicadas pelo BH. Confira as condições e o estoque na loja.' : 'A fonte não retornou ofertas dentro da validade.',
+      offers: ativo ? d.produtoOfertas.filter((p: any) => typeof p.titulo === 'string' && Number.isFinite(p.precoPor) && p.precoPor > 0).map((p: any, i: number) => ({
+        id: d.id + '-' + i, name: p.titulo, price: p.precoPor, conditions: p.textoAlternativo || '',
+        unit: /\bkg\b(?!.*\d)/i.test(p.titulo) && !/\d\s*kg/i.test(p.titulo) ? 'kg' : 'un', validUntil: d.dataVigenciaFim })) : [],
+    };
+  } catch {
+    return { offers: [], source: FONTE, checkedAt: agora, error: 'Não conseguimos atualizar as ofertas do BH agora. Tente novamente ou consulte a fonte oficial.' };
+  } finally { clearTimeout(t); }
+}

@@ -10,7 +10,8 @@ Lista de compras, despensa, notas e cardápio, no celular e no PC, sincronizados
 - **Os dados** ficam numa planilha do Google de vocês. Um Google Apps Script (`apps-script/Code.gs`) funciona como servidor. Ele guarda a casa, controla quem salvou por último (os dois podem editar ao mesmo tempo) e busca as ofertas do Supermercados BH.
 - **Sincronização:** cada aparelho confere a planilha a cada 6 segundos. Uma alteração aparece na hora no aparelho e sobe para a planilha em segundo plano.
 - **Sem sinal no mercado:** o app abre e funciona offline. As alterações ficam guardadas no aparelho e sobem quando a internet volta.
-- **Acesso:** uma chave secreta da casa, entregue pelo link do e-mail. O código é público; os dados não.
+- **Acesso:** livre para quem tem o endereço (sem login), por escolha da casa.
+- **Ofertas do BH:** buscadas direto pelo aparelho (o site do BH não responde aos servidores do Google).
 
 ## Instalação da planilha (uma vez, ~5 minutos)
 
@@ -22,8 +23,10 @@ Lista de compras, despensa, notas e cardápio, no celular e no PC, sincronizados
    - Executar como: **Eu**
    - Quem pode acessar: **Qualquer pessoa**
    - Clique em **Implantar** e autorize, se pedir.
-5. Volte ao editor, escolha a função **enviarLink** e clique em **Executar**. O link chega no seu e-mail.
-6. Abra o link **em cada aparelho**. No celular: menu do navegador → **Adicionar à tela de início**.
+5. Copie a URL do App da Web (Implantar → Gerenciar implantações) para `EXEC_URL` no script e para `src/config.ts`, junto com a chave (Configurações do projeto → Propriedades do script → `CHAVE`). Rode `bun scripts/build.ts` e publique.
+6. Rode a função **enviarInstrucoes**: chega um e-mail com o link e o passo a passo para instalar na tela de início do celular.
+
+O app abre direto pelo endereço, sem login (a chave fica em `src/config.ts`). Para fechar o acesso, rode **trocarChave** e atualize `src/config.ts`.
 
 Para mandar o link também para a Yas, coloque o e-mail dela em `EMAILS_EXTRAS` no topo do script e rode `enviarLink` de novo. Outra opção: no app, **Nossa casa → Enviar link para outro aparelho**.
 
