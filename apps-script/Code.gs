@@ -95,6 +95,41 @@ function enviarInstrucoes() {
   Logger.log('Instruções enviadas para ' + para);
 }
 
+/** E-mail com as novidades da versão e como ligar a IA do assistente. */
+function enviarNovidades() {
+  const para = [Session.getEffectiveUser().getEmail()].concat(EMAILS_EXTRAS).filter(String).join(',');
+  const verde = '#1f3d30', terra = '#d9714a', creme = '#f6f3ea';
+  const li = function (t) { return '<li style="margin:6px 0">' + t + '</li>'; };
+  const passo = function (n, t) { return '<tr><td style="vertical-align:top;padding:4px 10px 4px 0"><span style="display:inline-block;width:22px;height:22px;border-radius:11px;background:' + terra + ';color:#fff;text-align:center;font:bold 12px/22px Arial">' + n + '</span></td><td style="padding:4px 0;font:14px/1.5 Arial;color:#333">' + t + '</td></tr>'; };
+  const iaLigada = !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY');
+  const html =
+    '<div style="background:' + creme + ';padding:24px 12px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:18px;padding:28px;font-family:Arial,sans-serif;color:' + verde + '">' +
+    '<table><tr><td><img src="' + APP_URL + 'icon-192.png" width="52" height="52" style="border-radius:13px;display:block" alt="AleYas"></td>' +
+    '<td style="padding-left:14px"><div style="font:bold 26px Arial;letter-spacing:-1px">aleyas · novidades</div><div style="font:13px Arial;color:#7d8577">a casa do Ale e da Yas</div></td></tr></table>' +
+    '<p style="margin:22px 0"><a href="' + APP_URL + '" style="background:' + verde + ';color:' + creme + ';padding:13px 20px;border-radius:12px;text-decoration:none;font:bold 15px Arial">Abrir o AleYas</a></p>' +
+    '<p style="font:13px Arial;color:#7d8577;margin:-8px 0 18px">Se o ícone na tela de início já estiver instalado, é só abrir: a versão nova carrega sozinha (se não aparecer, feche e abra o app de novo).</p>' +
+    '<h3 style="font:bold 16px Arial;margin:18px 0 6px">O que mudou</h3><ul style="font:14px/1.5 Arial;color:#333;padding-left:18px;margin:0">' +
+    li('<b>Abre direto, sem login</b>, no celular e no PC, sincronizando pela planilha.') +
+    li('<b>✨ Assistente</b> (botão flutuante): dá ideias e <b>faz ações</b> — “coloca café na lista”, “arroz acabou”, “quarta no almoço macarrão à bolonhesa”, “ingredientes do cardápio para a lista”. Toda ação tem <b>Desfazer</b>.') +
+    li('<b>Cardápio com o que vocês compram</b>: as receitas só usam produtos da lista/notas (nada de ovo!).') +
+    li('<b>Montar refeição</b>: no Cardápio, crie refeições suas escolhendo os produtos (ex.: pão com manteiga e café).') +
+    li('<b>Lista ↔ despensa</b>: concluiu a compra, os itens vão para a despensa e viram “Tem em casa”; marcou “Acabou”, volta para a lista.') +
+    li('<b>Celular caprichado</b>: filtros numa linha só, botões maiores, quadros mais enxutos.') +
+    li('<b>Ofertas do BH</b> buscadas direto do aparelho e as <b>8 notas</b> (R$ 2.993,34) já importadas com preços.') + '</ul>' +
+    '<h3 style="font:bold 16px Arial;margin:22px 0 6px">' + (iaLigada ? '✅ A IA do assistente já está ligada' : '🔌 Ligar a IA do assistente (5 min, grátis)') + '</h3>' +
+    (iaLigada ? '' : '<p style="font:14px/1.5 Arial;color:#333;margin:0 0 6px">Hoje o assistente funciona no <b>modo simples</b> (entende comandos diretos). Para ele conversar, montar cardápios e entender pedidos livres, ligue o Gemini:</p><table>' +
+      passo(1, 'Abra <a href="https://aistudio.google.com/apikey">aistudio.google.com/apikey</a> com sua conta Google e clique em <b>Criar chave de API</b>. Copie a chave.') +
+      passo(2, 'Abra a planilha <b>Alyas</b> → <b>Extensões → Apps Script</b>.') +
+      passo(3, 'No menu da esquerda, clique na engrenagem <b>Configurações do projeto</b> e role até <b>Propriedades do script</b>.') +
+      passo(4, 'Clique em <b>Adicionar propriedade do script</b>: nome <b>GEMINI_KEY</b>, valor = a chave copiada. <b>Salvar</b>.') +
+      passo(5, 'Pronto! Não precisa reimplantar. Abra o ✨ no app e peça, por exemplo: “monta um cardápio de jantares para a semana com o que a gente compra”.') + '</table>' +
+      '<p style="font:12px Arial;color:#7d8577">A chave fica guardada só no seu Google (não vai para o código público).</p>') +
+    '<p style="font:12px Arial;color:#9aa;margin-top:24px">Pode encaminhar este e-mail para a Yas. 🏡</p></div></div>';
+  MailApp.sendEmail({ to: para, subject: 'AleYas · novidades (assistente, cardápio e mais)', htmlBody: html, name: 'AleYas',
+    body: 'Novidades do AleYas: ' + APP_URL + '\nAssistente com ações, receitas com o que vocês compram, montar refeição, lista ↔ despensa e layout do celular.\nPara ligar a IA: crie uma chave em aistudio.google.com/apikey e salve como GEMINI_KEY em Apps Script → Configurações do projeto → Propriedades do script.' });
+  Logger.log('Novidades enviadas para ' + para);
+}
+
 /** Gera uma chave nova (o link antigo deixa de funcionar). Depois rode enviarLink. */
 function trocarChave() {
   PropertiesService.getScriptProperties().deleteProperty('CHAVE');

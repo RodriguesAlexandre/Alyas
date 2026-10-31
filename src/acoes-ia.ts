@@ -134,8 +134,10 @@ export function interpretar(texto: string, data: any): { acoes: Acao[]; resposta
   }
   if (/ideia|sugest|sugere|o que (eu )?(faco|fazer|cozinh)|cardapio/.test(t)) {
     const op = allRecipes(data).filter(r => r.ingredients.every(i => (data.catalog || []).some((p: any) => normalizeName(p.name) === normalizeName(i.name)) || /^(sal|agua)$/i.test(i.name)));
-    const pick = op.sort(() => Math.random() - 0.5).slice(0, 3).map(r => `• ${r.emoji} ${r.name} (${r.meal.toLowerCase()})`).join('\n');
-    return { acoes: [], resposta: pick ? 'Algumas ideias com o que vocês compram:\n' + pick + '\n\nQuer que eu coloque alguma no cardápio? Ex.: “segunda no jantar ' + op[0]?.name.toLowerCase() + '”.' : 'Ainda não achei receitas completas com os produtos de vocês.' };
+    const alvo = ref ? REF[ref] : '';
+    const pool = alvo && op.some(r => r.meal === alvo) ? op.filter(r => r.meal === alvo) : op;
+    const pick = pool.sort(() => Math.random() - 0.5).slice(0, 3).map(r => `• ${r.emoji} ${r.name} (${r.meal.toLowerCase()})`).join('\n');
+    return { acoes: [], resposta: pick ? 'Algumas ideias com o que vocês compram:\n' + pick + '\n\nQuer que eu coloque alguma no cardápio? Ex.: “segunda no ' + ((alvo || pool[0]?.meal || 'jantar').toLowerCase()) + ' ' + pool[0]?.name.toLowerCase() + '”.' : 'Ainda não achei receitas completas com os produtos de vocês.' };
   }
   return { acoes: [] };
 }
