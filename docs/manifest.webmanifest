@@ -1,0 +1,16 @@
+{
+  "name": "Alyas · a casa do Ali e da Yas",
+  "short_name": "Alyas",
+  "description": "Lista de compras, despensa e cardápio do Ali e da Yas.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3ea",
+  "theme_color": "#1f3d30",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

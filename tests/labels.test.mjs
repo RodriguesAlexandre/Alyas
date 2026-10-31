@@ -1,0 +1,15 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {readLabel,matchScore,unitCost,previousPrice,repeatPurchase} from '../src/label-logic.ts';
+import {recipeFit} from '../src/recipe-fit.ts';
+import {recipes} from '../src/data.ts';
+import {stateSchema} from '../src/validation.ts';
+test('etiqueta lê embalagem e mantém preço por pacote',()=>{const p=readLabel('CAFE BARAO 500 g\nR$ 17,58');assert.equal(p.price,'17.58');assert.equal(p.packageQty,500);assert.equal(p.unit,'un')});
+test('não escolhe arbitrariamente entre clube e preço regular',()=>{const p=readLabel('CAFE BARAO 500G\nR$ 19,90\nMEU BH R$ 17,58');assert.equal(p.price,'');assert.equal(p.conditional,true);assert.deepEqual(p.prices,[19.9,17.58])});
+test('etiqueta por quilo não vira unidade',()=>assert.equal(readLabel('MUÇARELA KG\n34,98').unit,'kg'));
+test('matching não relaciona produtos só pelo tamanho',()=>{assert.ok(matchScore('CAFE BARAO 500G','Café')>.7);assert.equal(matchScore('CAFE BARAO 500G','Sabão em pó'),0)});
+test('comparação por kg e L normaliza embalagem',()=>{assert.deepEqual(unitCost(10,'un',500,'g'),{value:20,unit:'kg'});assert.deepEqual(unitCost(6,'un',1500,'ml'),{value:4,unit:'L'});assert.equal(unitCost(10,'un'),null)});
+test('repetir não duplica nem remarca itens, oferta anterior vira histórico',()=>{const a={id:'a',name:'Café',unit:'un',checked:true};const b={id:'b',name:'Arroz',unit:'kg',price:8,priceSource:'offer',priceValidUntil:'2020-01-01'};const n=repeatPurchase([a],[a,b]);assert.equal(n.length,2);assert.equal(n[0],a);assert.equal(n[1].checked,false);assert.equal(n[1].priceSource,'history');assert.equal(n[1].priceValidUntil,undefined)});
+test('preço anterior respeita data, unidade e embalagem',()=>{const h=[{date:'2020-01-01',items:[{name:'Café',unit:'un',price:1,packageQty:500,packageUnit:'g'}]},{date:'2025-01-01',items:[{name:'Café',unit:'un',price:9,packageQty:500,packageUnit:'g'}]}];assert.equal(previousPrice(h,'Café','un',500,'g').price,9);assert.equal(previousPrice(h,'Café','un',250,'g'),undefined)});
+test('catálogo não equivale a estoque e itens acabando são priorizados',()=>{const r=recipes.find(r=>r.id==='rice-broccoli');const d={catalog:[{name:'Arroz'},{name:'Brócolis',supply:'low'}],pantry:[]};assert.deepEqual(recipeFit(r,d),{usual:2,home:1,low:1})});
+test('nova receita e metadados de etiqueta sobrevivem à validação',()=>{const d={catalog:[],items:[{id:'1',name:'Café',qty:1,unit:'un',cat:'Mercearia',price:17.58,date:new Date().toISOString(),checked:true,priceSource:'shelf',packageQty:500,packageUnit:'g',store:'BH'}],pantry:[],history:[],plan:{'0-Almoço':{recipe:'rice-broccoli'}},budget:500,profiles:[{name:'A',portions:1,kcal:'',protein:''},{name:'B',portions:1,kcal:'',protein:''}]};const parsed=stateSchema.parse(d);assert.equal(parsed.items[0].packageQty,500);assert.equal(parsed.items[0].priceSource,'shelf')});

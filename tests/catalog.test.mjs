@@ -1,0 +1,7 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {defaultCatalog,ensureCatalog,requestProduct,normalize} from '../src/catalog-data.ts';
+test('importação não muda lista, estoque ou histórico existentes',()=>{const original={items:[{name:'Algo atual'}],pantry:[{name:'Estoque'}],history:[{total:12}]};const result=ensureCatalog(original);assert.equal(result.items,original.items);assert.equal(result.pantry,original.pantry);assert.equal(result.history,original.history);assert.ok(result.catalog.length>50)});
+test('não repõe produtos removidos e mantém favoritos',()=>{assert.deepEqual(ensureCatalog({catalog:[]}).catalog,[]);const custom=[{name:'Meu item',favorite:true}];assert.equal(ensureCatalog({catalog:custom}).catalog,custom)});
+test('importação é única, incluindo bacon uma vez e tomates separados',()=>{assert.equal(new Set(defaultCatalog.map(p=>normalize(p.name))).size,defaultCatalog.length);assert.equal(defaultCatalog.filter(p=>p.name==='Bacon').length,1);assert.ok(defaultCatalog.some(p=>p.name==='Tomate'));assert.ok(defaultCatalog.some(p=>p.name==='Tomate-cereja'))});
+test('selecionar duas vezes não duplica nem inventa preço',()=>{const p=defaultCatalog[0];const items=requestProduct([],p,'1');assert.equal(items[0].price,null);assert.equal(requestProduct(items,p,'2').length,1);assert.equal(requestProduct([{...items[0],checked:true}],p,'3')[0].checked,false)});
