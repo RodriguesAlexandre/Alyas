@@ -33,9 +33,9 @@ export default function Conectar({ onPronto }: { onPronto: () => void }) {
 
   return <div className="connect-screen">
     <div className="connect-card">
-      <div className="connect-brand"><LogoMark size={64} /><div><h1>alyas</h1><p>a casa do Ali e da Yas</p></div></div>
+      <div className="connect-brand"><LogoMark size={64} /><div><h1>aleyas</h1><p>a casa do Ale e da Yas</p></div></div>
       <h2>Vamos conectar este aparelho</h2>
-      <p className="muted">O Alyas guarda tudo numa planilha do Google de vocês. Abra o link que chegou no e-mail neste aparelho, ou cole ele aqui.</p>
+      <p className="muted">O AleYas guarda tudo numa planilha do Google de vocês. Abra o link que chegou no e-mail neste aparelho, ou cole ele aqui.</p>
       {!manual ? <form onSubmit={usarLink}>
         <label>Link de conexão<input value={link} onChange={e => setLink(e.target.value)} placeholder="https://…github.io/Alyas/#conectar=…" required /></label>
         <button className="primary full" disabled={testando}>Conectar</button>

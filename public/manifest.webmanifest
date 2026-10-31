@@ -1,7 +1,7 @@
 {
-  "name": "Alyas · a casa do Ali e da Yas",
-  "short_name": "Alyas",
-  "description": "Lista de compras, despensa e cardápio do Ali e da Yas.",
+  "name": "AleYas · a casa do Ale e da Yas",
+  "short_name": "AleYas",
+  "description": "Lista de compras, despensa e cardápio do Ale e da Yas.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

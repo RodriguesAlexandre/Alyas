@@ -1,4 +1,4 @@
-# Alyas · a casa do Ali e da Yas
+# AleYas · a casa do Ale e da Yas
 
 Lista de compras, despensa, notas e cardápio, no celular e no PC, sincronizados por uma planilha do Google.
 
@@ -14,10 +14,10 @@ Lista de compras, despensa, notas e cardápio, no celular e no PC, sincronizados
 
 ## Instalação da planilha (uma vez, ~5 minutos)
 
-1. Crie uma planilha nova em sheets.google.com e dê o nome **Alyas**.
-2. Abra **Extensões → Apps Script**. Apague o código que aparece e cole **todo** o conteúdo do arquivo `Alyas-Code.gs` (a cópia privada, que já traz as notas antigas). O `apps-script/Code.gs` deste repositório é a mesma versão, sem as notas.
+1. Crie uma planilha nova em sheets.google.com e dê o nome **AleYas**.
+2. Abra **Extensões → Apps Script**. Apague o código que aparece e cole **todo** o conteúdo do arquivo `AleYas-Code.gs` (a cópia privada, que já traz as notas antigas). O `apps-script/Code.gs` deste repositório é a mesma versão, sem as notas.
 3. Clique em salvar (ícone de disquete). Na barra de cima, escolha a função **configurar** e clique em **Executar**.
-   - O Google vai pedir autorização: **Revisar permissões → escolha sua conta → Avançado → Acessar Alyas (não seguro) → Permitir**. Esse aviso é padrão para scripts pessoais.
+   - O Google vai pedir autorização: **Revisar permissões → escolha sua conta → Avançado → Acessar AleYas (não seguro) → Permitir**. Esse aviso é padrão para scripts pessoais.
 4. Clique em **Implantar → Nova implantação**. Na engrenagem, escolha **App da Web** e preencha:
    - Executar como: **Eu**
    - Quem pode acessar: **Qualquer pessoa**

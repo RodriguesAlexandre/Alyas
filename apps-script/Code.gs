@@ -1,10 +1,10 @@
 /**
- * ALYAS · servidor da planilha (Google Apps Script)
+ * ALEYAS · servidor da planilha (Google Apps Script)
  * ------------------------------------------------------------
  * Este script transforma a planilha do Google no banco de dados do app.
  *
  * Como instalar (passo a passo completo no README do repositório):
- *  1. Crie uma planilha nova no Google Sheets chamada "Alyas".
+ *  1. Crie uma planilha nova no Google Sheets chamada "AleYas".
  *  2. Extensões → Apps Script. Apague o conteúdo e cole este arquivo inteiro.
  *  3. Selecione a função "configurar" e clique em Executar (autorize com sua conta).
  *  4. Implantar → Nova implantação → tipo "App da Web":
@@ -20,6 +20,8 @@
 const APP_URL = 'https://rodriguesalexandre.github.io/Alyas/';
 // E-mails extras que também recebem o link ao rodar enviarLink (ex.: 'fulana@gmail.com').
 const EMAILS_EXTRAS = [];
+// Endereço oficial do App da Web (Implantar → Gerenciar implantações → URL). Deixe vazio para detectar.
+const EXEC_URL = '';
 
 const ABA_ESTADO = '_estado';
 const PEDACO = 45000; // limite seguro por célula (máx. do Sheets: 50.000 caracteres)
@@ -45,7 +47,7 @@ function configurar() {
 }
 
 function enviarLink() {
-  const url = ScriptApp.getService().getUrl();
+  const url = EXEC_URL || ScriptApp.getService().getUrl();
   if (!url) throw new Error('Implante primeiro: Implantar → Nova implantação → App da Web.');
   const chave = PropertiesService.getScriptProperties().getProperty('CHAVE');
   if (!chave) throw new Error('Rode a função configurar antes.');
@@ -53,13 +55,44 @@ function enviarLink() {
   const link = APP_URL + '#conectar=' + token;
   const para = [Session.getEffectiveUser().getEmail()].concat(EMAILS_EXTRAS).filter(String).join(',');
   const html = '<div style="font-family:Arial,sans-serif;max-width:520px;color:#1f3d30">' +
-    '<h2 style="margin:0 0 8px">Alyas está pronto 🏡</h2>' +
+    '<h2 style="margin:0 0 8px">AleYas está pronto 🏡</h2>' +
     '<p>Abra este link <b>em cada aparelho</b> (celular e PC). Ele conecta o app à planilha de vocês e fica salvo no aparelho.</p>' +
-    '<p><a href="' + link + '" style="display:inline-block;background:#1f3d30;color:#f6f3ea;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Abrir o Alyas</a></p>' +
+    '<p><a href="' + link + '" style="display:inline-block;background:#1f3d30;color:#f6f3ea;padding:12px 18px;border-radius:12px;text-decoration:none;font-weight:bold">Abrir o AleYas</a></p>' +
     '<p style="font-size:13px">No celular: depois de abrir, use “Adicionar à tela de início” para ter o ícone do app.</p>' +
     '<p style="font-size:12px;color:#777">Não encaminhe este e-mail: o link dá acesso à lista de vocês. Endereço do app: ' + APP_URL + '</p></div>';
-  MailApp.sendEmail({ to: para, subject: 'Seu link do Alyas', htmlBody: html, body: 'Abra o Alyas: ' + link });
+  MailApp.sendEmail({ to: para, subject: 'Seu link do AleYas', htmlBody: html, body: 'Abra o AleYas: ' + link });
   Logger.log('Link enviado para ' + para + ':\n' + link);
+}
+
+// ---------------- E-mail de boas-vindas (link + como instalar no celular) ----------------
+/** Envia o link do app e o passo a passo para colocá-lo na tela de início. */
+function enviarInstrucoes() {
+  const para = [Session.getEffectiveUser().getEmail()].concat(EMAILS_EXTRAS).filter(String).join(',');
+  const verde = '#1f3d30', terra = '#d9714a', creme = '#f6f3ea';
+  const passo = function (n, t) { return '<tr><td style="vertical-align:top;padding:4px 10px 4px 0"><span style="display:inline-block;width:22px;height:22px;border-radius:11px;background:' + terra + ';color:#fff;text-align:center;font:bold 12px/22px Arial">' + n + '</span></td><td style="padding:4px 0;font:14px/1.5 Arial;color:#333">' + t + '</td></tr>'; };
+  const html =
+    '<div style="background:' + creme + ';padding:24px 12px"><div style="max-width:520px;margin:auto;background:#fff;border-radius:18px;padding:28px;font-family:Arial,sans-serif;color:' + verde + '">' +
+    '<table><tr><td><img src="' + APP_URL + 'icon-192.png" width="56" height="56" style="border-radius:14px;display:block" alt="AleYas"></td>' +
+    '<td style="padding-left:14px"><div style="font:bold 28px Arial;letter-spacing:-1px">aleyas</div><div style="font:13px Arial;color:#7d8577">a casa do Ale e da Yas</div></td></tr></table>' +
+    '<p style="font:15px/1.6 Arial;color:#333;margin:22px 0 8px">Nossa lista de compras, despensa, notas e cardápio, num lugar só. O que um marca aparece para o outro em poucos segundos.</p>' +
+    '<p style="margin:22px 0"><a href="' + APP_URL + '" style="background:' + verde + ';color:' + creme + ';padding:14px 22px;border-radius:12px;text-decoration:none;font:bold 15px Arial">Abrir o AleYas</a></p>' +
+    '<p style="font:12px Arial;color:#7d8577;margin:0 0 22px">' + APP_URL + '</p>' +
+    '<h3 style="font:bold 16px Arial;margin:20px 0 8px">📱 iPhone (Safari)</h3><table>' +
+    passo(1, 'Abra o link acima no <b>Safari</b>.') + passo(2, 'Toque em <b>Compartilhar</b> (o quadrado com a seta para cima).') +
+    passo(3, 'Role e toque em <b>Adicionar à Tela de Início</b>.') + passo(4, 'Confirme o nome <b>AleYas</b> e toque em <b>Adicionar</b>.') + '</table>' +
+    '<h3 style="font:bold 16px Arial;margin:20px 0 8px">🤖 Android (Chrome)</h3><table>' +
+    passo(1, 'Abra o link acima no <b>Chrome</b>.') + passo(2, 'Toque nos <b>três pontinhos</b> no canto de cima.') +
+    passo(3, 'Toque em <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.') + passo(4, 'Confirme. O ícone do AleYas aparece junto com os outros apps.') + '</table>' +
+    '<h3 style="font:bold 16px Arial;margin:20px 0 8px">💻 No computador</h3>' +
+    '<p style="font:14px/1.5 Arial;color:#333;margin:0">No Chrome, clique no ícone de instalar na barra de endereço (ou ⋮ → Transmitir, salvar e compartilhar → Instalar página como app). Também dá para só salvar nos favoritos.</p>' +
+    '<h3 style="font:bold 16px Arial;margin:20px 0 8px">Bom saber</h3><ul style="font:14px/1.6 Arial;color:#333;padding-left:18px;margin:0">' +
+    '<li>Não tem login: é só abrir.</li><li>Tudo fica salvo na planilha do Google “AleYas”.</li>' +
+    '<li>Sem sinal no mercado? Pode marcar normalmente: sobe sozinho quando a internet voltar.</li>' +
+    '<li>No mercado, use <b>Lista de compras → Modo mercado</b> e <b>Ler etiqueta</b> para pegar preços pela câmera.</li></ul>' +
+    '<p style="font:12px Arial;color:#9aa;margin-top:26px">Feito com carinho para a casa de vocês. 🏡</p></div></div>';
+  MailApp.sendEmail({ to: para, subject: 'AleYas · nosso app da casa (link e como instalar)', htmlBody: html, name: 'AleYas',
+    body: 'Abra o AleYas: ' + APP_URL + '\n\niPhone (Safari): Compartilhar → Adicionar à Tela de Início.\nAndroid (Chrome): ⋮ → Instalar app / Adicionar à tela inicial.\n\nSem login. Tudo sincroniza entre vocês pela planilha do Google.' });
+  Logger.log('Instruções enviadas para ' + para);
 }
 
 /** Gera uma chave nova (o link antigo deixa de funcionar). Depois rode enviarLink. */

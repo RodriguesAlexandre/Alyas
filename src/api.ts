@@ -1,8 +1,10 @@
-// Conexão do Alyas com a planilha do Google (via Apps Script publicado como app da web).
+// Conexão do AleYas com a planilha do Google (via Apps Script publicado como app da web).
 // O endereço do script e a chave da casa ficam salvos só neste aparelho (localStorage).
 
+import { PLANILHA_URL, PLANILHA_CHAVE } from './config';
+
 const CONFIG_KEY = 'alyas-conexao';
-const CACHE_KEY = 'alyas-cache';
+const CACHE_KEY = 'aleyas-cache';
 
 export type Conexao = { url: string; key: string };
 
@@ -26,8 +28,8 @@ export function lerLinkDeConexao(): boolean {
 
 export function conexao(): Conexao | null {
   const raw = safeGet(CONFIG_KEY);
-  if (!raw) return null;
-  try { const c = JSON.parse(raw); return c.url && c.key ? c : null; } catch { return null; }
+  if (raw) { try { const c = JSON.parse(raw); if (c.url && c.key) return c; } catch { /* usa a padrão */ } }
+  return PLANILHA_URL && PLANILHA_CHAVE ? { url: PLANILHA_URL, key: PLANILHA_CHAVE } : null;
 }
 export function salvarConexao(c: Conexao) { safeSet(CONFIG_KEY, JSON.stringify({ url: c.url.trim(), key: c.key.trim() })); }
 export function esquecerConexao() { safeDel(CONFIG_KEY); safeDel(CACHE_KEY); }
