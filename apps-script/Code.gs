@@ -158,6 +158,8 @@ function tratar(p) {
     case 'offers': return ofertas();
     case 'receipts': return { ok: true, notes: NOTAS_SEED };
     case 'ai': return assistente(p);
+    case 'aistatus': return { ok: true, ligada: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') };
+    case 'setai': return ligarIA(p.gemini);
     default: return falha('Ação desconhecida.', 400);
   }
 }
@@ -248,7 +250,10 @@ function assistente(p) {
   const ctx = JSON.stringify(p.context || {}).slice(0, 60000);
   const sistema =
     'Você é o assistente do AleYas, app da casa do Ale e da Yas (Belo Horizonte, compram no Supermercados BH). ' +
-    'Responda em português do Brasil, curto, caloroso e prático. ' +
+    'Responda em português do Brasil, curto, caloroso e prático (no máximo 6 linhas, listas com • quando ajudar). ' +
+    'Você conhece a casa pelo contexto: lista de compras, despensa, catálogo com status ([ok]=tem em casa, [low]=acabando, [out]=acabou), receitas e cardápio da semana. Use isso para responder perguntas (o que falta, o que está acabando, quanto vai custar) sem inventar. ' +
+    'Ao montar cardápios: varie proteínas ao longo da semana, priorize itens [ok]/[low], respeite porções e metas das pessoas, e depois ofereça mandar os ingredientes para a lista. ' +
+    'Se o pedido for ambíguo e a ação puder estragar algo, pergunte em uma frase antes; se for claro, faça e diga o que fez. Quantidades: interprete “2 pacotes”, “1 kg”, “meia dúzia”. ' +
     'Você pode AGIR no app devolvendo ações. Use só ações quando o pedido for claro; para ideias, responda em texto e sugira. ' +
     'Regras: nunca use camarão (alergia). Prefira receitas e ingredientes que estão em "catalogo" (o que a casa compra). ' +
     'Para planejar uma refeição use plan_meal com recipe_id existente em "receitas"; se não existir, use create_recipe com ingredientes do catálogo e plan_day/plan_meal. ' +
@@ -292,6 +297,17 @@ function assistente(p) {
     catch (e) { return { ok: true, reply: String(txt || 'Não entendi, pode repetir?'), actions: [], model: modelos[i] }; }
   }
   return falha('Não consegui falar com a IA agora (' + ultimoErro + ').', 502);
+}
+
+/** Recebe a chave do Gemini pelo app, testa e guarda nas Propriedades do script (nunca é devolvida). */
+function ligarIA(chave) {
+  chave = String(chave || '').trim();
+  if (chave === 'desligar') { PropertiesService.getScriptProperties().deleteProperty('GEMINI_KEY'); return { ok: true, ligada: false }; }
+  if (!/^[A-Za-z0-9_\-]{30,80}$/.test(chave)) return falha('Essa chave não parece válida. Copie de novo em aistudio.google.com/apikey.', 400);
+  const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', { muteHttpExceptions: true, headers: { 'x-goog-api-key': chave } });
+  if (r.getResponseCode() !== 200) return falha('O Google recusou essa chave (' + r.getResponseCode() + '). Confira se copiou inteira.', 400);
+  PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', chave);
+  return { ok: true, ligada: true };
 }
 
 /** Teste rápido da IA pelo editor: selecione e clique em Executar. */

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Sparkles, Send, X, Undo2, Mic } from 'lucide-react';
+import Voz, { temVoz as suportaVoz } from './voz';
 import { api } from './api';
 import { aplicarAcoes, contexto, interpretar, type Acao } from './acoes-ia';
 
@@ -16,8 +17,10 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
   const [texto, setTexto] = useState('');
   const [pensando, setPensando] = useState(false);
   const [semIA, setSemIA] = useState(false);
+  const [gravando, setGravando] = useState(false);
   const fim = useRef<HTMLDivElement>(null);
   const dataRef = useRef(data); dataRef.current = data;
+  useEffect(() => { const f = () => setSemIA(false); window.addEventListener('aleyas-ia', f); return () => window.removeEventListener('aleyas-ia', f); }, []);
 
   useEffect(() => { try { sessionStorage.setItem(CHAVE, JSON.stringify(msgs.slice(-30))); } catch { /* */ } fim.current?.scrollIntoView({ behavior: 'smooth' }); }, [msgs, aberto]);
 
@@ -42,9 +45,7 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
         setSemIA(e.code === 412);
         const local = interpretar(pergunta, dataRef.current);
         acoes = local.acoes;
-        resposta = local.resposta || (acoes.length ? 'Feito!' : e.code === 412
-          ? 'Ainda estou no modo simples (a IA do Gemini não foi ligada). Entendo pedidos como “coloca café na lista”, “arroz acabou”, “segunda no jantar frango ao creme” ou “ideias de jantar”.'
-          : 'A IA não respondeu agora. ' + (e.message || ''));
+        resposta = local.resposta || (acoes.length ? 'Feito!' : 'A IA não respondeu agora. ' + (e.message || ''));
       }
       const { feitos, ignorados, undo } = await executar(acoes);
       setMsgs(m => [...(undo ? m.map(x => ({ ...x, undo: undefined })) : m), { role: 'assistant', text: resposta + (ignorados.length ? '\n\n(Não consegui: ' + ignorados.join('; ') + ')' : ''), feitos, undo }]);
@@ -59,18 +60,12 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
     if (ok) setMsgs(ms => ms.map((x, i) => i === k ? { ...x, undo: undefined, feitos: (x.feitos || []).map(f => '↩︎ ' + f) } : x));
   }
 
-  function ditar() {
-    const SR: any = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition; if (!SR) return;
-    const r = new SR(); r.lang = 'pt-BR'; r.interimResults = false;
-    r.onresult = (e: any) => { const t = e.results[0][0].transcript; setTexto(t); };
-    r.start();
-  }
-  const temVoz = typeof window !== 'undefined' && !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  const temVoz = suportaVoz();
 
   return <>
     {!aberto && <button className="ai-fab" aria-label="Abrir assistente" onClick={() => setAberto(true)}><Sparkles size={22} /></button>}
     {aberto && <section className="ai-panel" role="complementary" aria-label="Assistente AleYas">
-      <div className="ai-head"><span className="ai-avatar"><Sparkles size={16} /></span><div><b>Assistente</b><small>{semIA ? 'modo simples' : 'ideias e ações na casa'}</small></div>
+      <div className="ai-head"><span className="ai-avatar"><Sparkles size={16} /></span><div><b>Assistente</b><small>{semIA ? 'modo simples · ligue a IA em Nossa casa' : 'ideias e ações na casa'}</small></div>
         <button className="icon-btn" title="Fechar" onClick={() => setAberto(false)}><X size={18} /></button></div>
       <div className="ai-msgs">
         {!msgs.length && <div className="ai-hello"><p>Oi! Posso dar ideias de refeições com o que vocês compram, montar o cardápio, colocar coisas na lista e marcar o que está acabando.</p></div>}
@@ -83,11 +78,12 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
         <div ref={fim} />
       </div>
       {!msgs.length && <div className="ai-sugs">{SUGESTOES.map(s => <button key={s} onClick={() => enviar(s)}>{s}</button>)}</div>}
+      {gravando ? <Voz onTexto={t => setTexto(x => (x ? x + ' ' : '') + t)} onEnviar={t => enviar(t)} onFechar={() => setGravando(false)} /> :
       <form className="ai-input" onSubmit={e => { e.preventDefault(); enviar(); }}>
-        {temVoz && <button type="button" className="icon-btn" title="Falar" onClick={ditar}><Mic size={18} /></button>}
+        {temVoz && <button type="button" className="icon-btn ai-mic" title="Falar" aria-label="Falar" onClick={() => setGravando(true)}><Mic size={19} /></button>}
         <input value={texto} onChange={e => setTexto(e.target.value)} placeholder="Peça algo para a casa…" maxLength={1000} aria-label="Mensagem para o assistente" />
         <button className="primary" disabled={!texto.trim() || pensando} aria-label="Enviar"><Send size={16} /></button>
-      </form>
+      </form>}
     </section>}
   </>;
 }

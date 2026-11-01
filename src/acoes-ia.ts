@@ -112,32 +112,90 @@ export function contexto(data: any) {
 
 // ---------- Intérprete simples (sem IA) ----------
 const DIAS: Record<string, number> = { segunda: 0, terca: 1, quarta: 2, quinta: 3, sexta: 4, sabado: 5, domingo: 6, seg: 0, ter: 1, qua: 2, qui: 3, sex: 4, sab: 5, dom: 6 };
-const REF: Record<string, string> = { cafe: 'Café da manhã', 'cafe da manha': 'Café da manhã', almoco: 'Almoço', lanche: 'Lanche', jantar: 'Jantar', janta: 'Jantar' };
+const REF: Record<string, string> = { 'cafe da manha': 'Café da manhã', cafezinho: 'Café da manhã', almoco: 'Almoço', lanche: 'Lanche', jantar: 'Jantar', janta: 'Jantar' };
+const UNI: Record<string, string> = { pacote: 'pacote', pacotes: 'pacote', pct: 'pacote', kg: 'kg', quilo: 'kg', quilos: 'kg', g: 'g', gramas: 'g', l: 'L', litro: 'L', litros: 'L', ml: 'ml', un: 'un', unidade: 'un', unidades: 'un', fatia: 'fatia', fatias: 'fatia', lata: 'un', latas: 'un', caixa: 'un', caixas: 'un', duzia: 'un' };
+const NUM: Record<string, number> = { um: 1, uma: 1, dois: 2, duas: 2, tres: 3, quatro: 4, cinco: 5, seis: 6, sete: 7, oito: 8, nove: 9, dez: 10, doze: 12, meio: 0.5, meia: 0.5 };
+const AJUDA = 'Posso fazer, por exemplo:\n• “coloca 2 pacotes de café e arroz na lista”\n• “detergente acabou” · “azeite tá acabando” · “tem leite em casa”\n• “peguei o café” (no mercado)\n• “o que falta comprar?” · “o que tá acabando?”\n• “ideias de jantar” · “monta o cardápio da semana”\n• “quarta no almoço macarrão à bolonhesa” · “limpa a quarta”\n• “ingredientes do cardápio pra lista” · “orçamento de 500”';
+
+function item(txt: string): Acao {
+  const m = txt.match(/^(\d+(?:[.,]\d+)?|um|uma|dois|duas|tres|quatro|cinco|seis|sete|oito|nove|dez|doze|meio|meia)\s*(pacotes?|pct|kg|quilos?|g|gramas|l|litros?|ml|un|unidades?|fatias?|latas?|caixas?|duzia)?\s*(?:de\s+|do\s+|da\s+)?(.+)$/);
+  if (!m) return { type: 'add_to_list', product: txt };
+  const q = NUM[m[1]] ?? Number(m[1].replace(',', '.'));
+  return { type: 'add_to_list', product: m[3], qty: m[1] === 'duzia' ? 12 : q, unit: m[2] ? UNI[m[2]] : 'un' };
+}
+
+function montarSemana(data: any, refeicoes: string[], vazios: boolean) {
+  const ok = allRecipes(data).filter(r => r.ingredients.every(i => /^(sal|agua)$/i.test(i.name) || (data.catalog || []).some((p: any) => normalizeName(p.name) === normalizeName(i.name))));
+  const peso = (r: any) => r.ingredients.filter((i: any) => (data.catalog || []).some((p: any) => normalizeName(p.name) === normalizeName(i.name) && (p.supply === 'ok' || p.supply === 'low'))).length;
+  const acoes: Acao[] = [];
+  for (const meal of refeicoes) {
+    const pool = ok.filter(r => r.meal === meal).sort((a, b) => peso(b) - peso(a) || Math.random() - 0.5);
+    if (!pool.length) continue;
+    for (let dia = 0; dia < 7; dia++) {
+      if (vazios && data.plan[dia + '-' + meal]) continue;
+      acoes.push({ type: 'plan_meal', day: dia, meal, recipe_id: pool[dia % pool.length].id });
+    }
+  }
+  return acoes;
+}
 
 export function interpretar(texto: string, data: any): { acoes: Acao[]; resposta?: string } {
-  const t = normalizeName(texto).replace(/[!?.]/g, ' ').replace(/\s+/g, ' ').trim();
-  const lista = (s: string) => s.split(/,| e /).map(x => x.trim()).filter(x => x && x.length < 40);
+  const t = normalizeName(texto).replace(/[!?.;:]/g, ' ').replace(/\b(por favor|pf|pfv|ai|pra mim|para mim|tambem)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  const lista = (s: string) => s.split(/,| e /).map(x => x.trim().replace(/^(o|a|os|as|um|uma)\s+/, '')).filter(x => x && x.length < 40);
+  const dinheiro = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   let m: RegExpMatchArray | null;
-  if ((m = t.match(/^(?:coloca|coloque|adiciona|adicione|poe|bota|anota|inclui|inclua)\s+(.+?)\s+na lista/)) || (m = t.match(/^(?:compra|comprar|falta|faltando|precisa comprar)\s+(.+)$/)))
-    return { acoes: lista(m[1]).map(product => ({ type: 'add_to_list', product })) };
-  if ((m = t.match(/^(?:tira|tire|remove|remova)\s+(.+?)\s+da lista/))) return { acoes: lista(m[1]).map(product => ({ type: 'remove_from_list', product })) };
-  if ((m = t.match(/^(.+?)\s+(?:acabou|ta faltando|esta faltando)$/))) return { acoes: lista(m[1]).map(product => ({ type: 'set_supply', product, status: 'out' as const })) };
-  if ((m = t.match(/^(.+?)\s+(?:ta|esta)\s+acabando$/))) return { acoes: lista(m[1]).map(product => ({ type: 'set_supply', product, status: 'low' as const })) };
-  if ((m = t.match(/^(?:tem|temos)\s+(.+?)\s+em casa$/)) || (m = t.match(/^(.+?)\s+tem em casa$/))) return { acoes: lista(m[1]).map(product => ({ type: 'set_supply', product, status: 'ok' as const })) };
-  if (/ingredientes? .*lista|cardapio .*lista/.test(t)) return { acoes: [{ type: 'plan_to_list' }] };
+  if (!t || /^(oi|ola|opa|e ai|bom dia|boa tarde|boa noite|ajuda|help|o que voce (faz|sabe))$/.test(t)) return { acoes: [], resposta: 'Oi! ' + AJUDA };
+  // lista de compras
+  if ((m = t.match(/^(?:peguei|pegamos|ja peguei|marca|marque|coloca|poe)\s+(.+?)(?:\s+(?:no carrinho|como comprad[oa]s?|como pego))?$/)) && /peguei|pegamos|carrinho|comprad/.test(t))
+    return { acoes: lista(m[1]).map(product => ({ type: 'mark_in_cart', product })) };
+  const ehCardapio = /cardapio|\b(segunda|terca|quarta|quinta|sexta|sabado|domingo)\b.*\b(almoco|jantar|janta|lanche|cafe)\b/.test(t);
+  if (!ehCardapio && (m = t.match(/^(?:coloca|coloque|adiciona|adicione|add|poe|ponha|bota|anota|anote|inclui|inclua|lembra de comprar|preciso de|precisamos de)\s+(.+?)(?:\s+na lista(?: de compras?)?)?$/)) || !ehCardapio && (m = t.match(/^(?:comprar|precisa comprar|falta|faltou)\s+(.+)$/)))
+    return { acoes: lista(m[1]).map(item) };
+  if ((m = t.match(/^(?:tira|tire|remove|remova|apaga|apague)\s+(.+?)\s+da lista/))) return { acoes: lista(m[1]).map(product => ({ type: 'remove_from_list', product })) };
+  // perguntas sobre a casa
+  if (/(o que|oque|quais).*(acabando|acabou|faltando em casa)/.test(t)) {
+    const low = (data.catalog || []).filter((p: any) => p.supply === 'low').map((p: any) => p.name), out = (data.catalog || []).filter((p: any) => p.supply === 'out').map((p: any) => p.name);
+    return { acoes: [], resposta: (low.length ? '⏳ Acabando: ' + low.join(', ') + '.' : 'Nada marcado como acabando.') + (out.length ? '\n🛒 Acabou: ' + out.join(', ') + '.' : '') + (low.length ? '\n\nQuer que eu coloque os que estão acabando na lista? Diga “coloca ' + low.slice(0, 3).join(', ') + ' na lista”.' : '') };
+  }
+  if (/(o que|oque|quanto).*(falta comprar|tem na lista|ta na lista|esta na lista|precis\w* comprar)|^lista$|minha lista/.test(t)) {
+    const pend = data.items.filter((i: any) => !i.checked), cart = data.items.filter((i: any) => i.checked);
+    return { acoes: [], resposta: pend.length ? `🛒 Faltam ${pend.length}: ` + pend.map((i: any) => i.name + (i.qty !== 1 ? ` (${i.qty} ${i.unit})` : '')).join(', ') + '.' + (cart.length ? `\n✅ No carrinho: ${cart.length}.` : '') : 'A lista está vazia. 🎉' };
+  }
+  if (/orcamento|quanto (vai|deu|da|ta|esta|gastamos|gastei)|gasto/.test(t) && !/orcamento (de |para |pra )?r?\$?\s*\d/.test(t)) {
+    const soma = (l: any[]) => l.reduce((n, i) => n + (i.price != null ? i.price * i.qty : 0), 0);
+    const pend = data.items.filter((i: any) => !i.checked), cart = data.items.filter((i: any) => i.checked), sem = data.items.filter((i: any) => i.price == null).length;
+    return { acoes: [], resposta: `💰 Orçamento da semana: ${dinheiro(data.budget)}.\nNo carrinho: ${dinheiro(soma(cart))} · Lista inteira: ${dinheiro(soma(pend) + soma(cart))}` + (sem ? `\n(${sem} itens ainda sem preço)` : '') };
+  }
+  // reposição
+  if ((m = t.match(/^(.+?)\s+(?:acabou|acabaram|ta faltando|esta faltando|nao tem mais)$/))) return { acoes: lista(m[1]).map(product => ({ type: 'set_supply', product, status: 'out' as const })) };
+  if (!/^(o que|oque|quais|qual)\b/.test(t) && (m = t.match(/^(.+?)\s+(?:ta|esta|tao|estao)\s+acabando$/))) return { acoes: lista(m[1]).map(product => ({ type: 'set_supply', product, status: 'low' as const })) };
+  if ((m = t.match(/^(?:tem|temos|ja tem|ja temos)\s+(.+?)\s+em casa$/)) || (m = t.match(/^(.+?)\s+(?:tem em casa|ja tem|ja temos)$/))) return { acoes: lista(m[1]).map(product => ({ type: 'set_supply', product, status: 'ok' as const })) };
+  // cardápio
+  if (/ingredientes?.*(lista|comprar)|cardapio.*(lista|comprar)/.test(t)) return { acoes: [{ type: 'plan_to_list' }] };
   if ((m = t.match(/orcamento (?:de |para |pra )?r?\$?\s*(\d+(?:[.,]\d+)?)/))) return { acoes: [{ type: 'set_budget', value: Number(m[1].replace(',', '.')) }] };
   const dia = Object.keys(DIAS).sort((a, b) => b.length - a.length).find(k => new RegExp('\\b' + k + '\\b').test(t));
-  const ref = Object.keys(REF).sort((a, b) => b.length - a.length).find(k => t.includes(k));
+  const refKey = Object.keys(REF).sort((a, b) => b.length - a.length).find(k => new RegExp('\\b' + k + '\\b').test(t)) || (/\bcafe\b/.test(t) && dia ? 'cafe da manha' : undefined);
+  const ref = refKey ? REF[refKey] : '';
+  if (/^(limpa|limpe|apaga|apague|zera|zere|esvazia)/.test(t) && /cardapio|semana|\b(segunda|terca|quarta|quinta|sexta|sabado|domingo)\b/.test(t)) {
+    const keys = Object.keys(data.plan).filter(k => (dia ? k.startsWith(DIAS[dia] + '-') : true) && (ref ? k.endsWith('-' + ref) : true));
+    return { acoes: keys.map(k => ({ type: 'clear_meal', day: Number(k.split('-')[0]), meal: k.split('-').slice(1).join('-') })), resposta: keys.length ? undefined : 'Não havia nada planejado aí.' };
+  }
+  if (/(monta|monte|planeja|planeje|faz|faca|sugere e coloca|preenche|preencha).*(cardapio|semana)/.test(t)) {
+    const refeicoes = ref ? [ref] : /completo|todas|tudo/.test(t) ? ['Café da manhã', 'Almoço', 'Lanche', 'Jantar'] : ['Almoço', 'Jantar'];
+    const acoes = montarSemana(data, refeicoes, !/refaz|de novo|do zero|substitu/.test(t));
+    return { acoes, resposta: acoes.length ? `Montei ${refeicoes.join(' e ').toLowerCase()} da semana com receitas que usam só o que vocês compram, priorizando o que já tem em casa. Quer que eu mande os ingredientes para a lista? Diga “ingredientes do cardápio pra lista”.` : 'A semana já está preenchida. Para refazer, diga “refaz o cardápio da semana”.' };
+  }
   if (dia && ref) {
     const r = allRecipes(data).map(r => ({ r, score: normalizeName(r.name).split(' ').filter(w => w.length > 2 && t.includes(w)).length })).sort((a, b) => b.score - a.score)[0];
-    if (r && r.score > 0) return { acoes: [{ type: 'plan_meal', day: DIAS[dia], meal: REF[ref], recipe_id: r.r.id }] };
+    if (r && r.score > 0) return { acoes: [{ type: 'plan_meal', day: DIAS[dia], meal: ref, recipe_id: r.r.id }] };
+    if (/qualquer|algo|alguma|sugest|voce escolhe/.test(t)) { const a = montarSemana(data, [ref], false).find(x => x.day === DIAS[dia]); if (a) return { acoes: [a] }; }
   }
-  if (/ideia|sugest|sugere|o que (eu )?(faco|fazer|cozinh)|cardapio/.test(t)) {
+  if (/ideia|sugest|sugere|o que (eu |a gente )?(faco|fazer|cozinh|comer|como)|receita/.test(t)) {
     const op = allRecipes(data).filter(r => r.ingredients.every(i => (data.catalog || []).some((p: any) => normalizeName(p.name) === normalizeName(i.name)) || /^(sal|agua)$/i.test(i.name)));
-    const alvo = ref ? REF[ref] : '';
+    const alvo = ref;
     const pool = alvo && op.some(r => r.meal === alvo) ? op.filter(r => r.meal === alvo) : op;
     const pick = pool.sort(() => Math.random() - 0.5).slice(0, 3).map(r => `• ${r.emoji} ${r.name} (${r.meal.toLowerCase()})`).join('\n');
     return { acoes: [], resposta: pick ? 'Algumas ideias com o que vocês compram:\n' + pick + '\n\nQuer que eu coloque alguma no cardápio? Ex.: “segunda no ' + ((alvo || pool[0]?.meal || 'jantar').toLowerCase()) + ' ' + pool[0]?.name.toLowerCase() + '”.' : 'Ainda não achei receitas completas com os produtos de vocês.' };
   }
-  return { acoes: [] };
+  return { acoes: [], resposta: 'Ainda não entendi esse pedido no modo simples. ' + AJUDA };
 }
