@@ -219,3 +219,12 @@ html.escuro .sync i{background:#7fae6a}html.escuro .ai-fab{background:linear-gra
 .market-mode .cart-dashboard{position:static!important}.market-mode .list-card .toolbar{position:sticky;top:0!important;z-index:15}
 html.escuro .hero h2 em{color:#a9c39a}
 html.escuro .ai-fab{background:linear-gradient(135deg,#2f7a55,#3f9468);border-color:#e8875a;box-shadow:0 10px 30px #0008,0 0 0 4px #3f946826}
+/* Botões de ação em destaque */
+.secondary{background:#eef3e6;border:1px solid #cfdcbf;color:#1f3d30;font-weight:700}.secondary:hover:not(:disabled){background:#e3ecd6}
+.secondary svg{color:#3f7a57}
+.whats{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 19px;border-radius:8px;font-size:12px;font-weight:700;background:#1f9d55;color:#fff;white-space:nowrap;box-shadow:0 3px 8px #1f9d5530}.whats:hover:not(:disabled){background:#1a8a4a}
+@media(max-width:800px){.list-card .toolbar>.whats{flex:1;font-size:12px;padding:11px}.list-card .toolbar>.secondary{font-size:12px;padding:11px}}
+html.escuro .secondary{background:#2a2c27;border-color:#3d4038;color:#ecebe5}html.escuro .secondary svg{color:#a9c39a}html.escuro .secondary:hover:not(:disabled){background:#32352f}
+html.escuro .whats{background:#1f8a4c}
+.toolbar .whats,.whats{color:#fff;border:0}.whats svg{color:#fff}
+html.escuro .secondary{background:#34372f;border-color:#4a4e44}
