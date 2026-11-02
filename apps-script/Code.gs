@@ -66,15 +66,15 @@ function enviarLink() {
 
 // ---------------- E-mail de boas-vindas (link + como instalar no celular) ----------------
 /** Envia o link do app e o passo a passo para colocá-lo na tela de início. */
-function enviarInstrucoes() {
-  const para = [Session.getEffectiveUser().getEmail()].concat(EMAILS_EXTRAS).filter(String).join(',');
+function enviarInstrucoes(destino, intro, assunto) {
+  const para = destino || [Session.getEffectiveUser().getEmail()].concat(EMAILS_EXTRAS).filter(String).join(',');
   const verde = '#1f3d30', terra = '#d9714a', creme = '#f6f3ea';
   const passo = function (n, t) { return '<tr><td style="vertical-align:top;padding:4px 10px 4px 0"><span style="display:inline-block;width:22px;height:22px;border-radius:11px;background:' + terra + ';color:#fff;text-align:center;font:bold 12px/22px Arial">' + n + '</span></td><td style="padding:4px 0;font:14px/1.5 Arial;color:#333">' + t + '</td></tr>'; };
   const html =
     '<div style="background:' + creme + ';padding:24px 12px"><div style="max-width:520px;margin:auto;background:#fff;border-radius:18px;padding:28px;font-family:Arial,sans-serif;color:' + verde + '">' +
     '<table><tr><td><img src="' + APP_URL + 'icon-192.png" width="56" height="56" style="border-radius:14px;display:block" alt="AleYas"></td>' +
     '<td style="padding-left:14px"><div style="font:bold 28px Arial;letter-spacing:-1px">aleyas</div><div style="font:13px Arial;color:#7d8577">a casa do Ale e da Yas</div></td></tr></table>' +
-    '<p style="font:15px/1.6 Arial;color:#333;margin:22px 0 8px">Nossa lista de compras, despensa, notas e cardápio, num lugar só. O que um marca aparece para o outro em poucos segundos.</p>' +
+    (intro || '') + '<p style="font:15px/1.6 Arial;color:#333;margin:22px 0 8px">Nossa lista de compras, despensa, notas, gastos e cardápio, num lugar só. O que um marca aparece para o outro em poucos segundos.</p>' +
     '<p style="margin:22px 0"><a href="' + APP_URL + '" style="background:' + verde + ';color:' + creme + ';padding:14px 22px;border-radius:12px;text-decoration:none;font:bold 15px Arial">Abrir o AleYas</a></p>' +
     '<p style="font:12px Arial;color:#7d8577;margin:0 0 22px">' + APP_URL + '</p>' +
     '<h3 style="font:bold 16px Arial;margin:20px 0 8px">📱 iPhone (Safari)</h3><table>' +
@@ -86,11 +86,11 @@ function enviarInstrucoes() {
     '<h3 style="font:bold 16px Arial;margin:20px 0 8px">💻 No computador</h3>' +
     '<p style="font:14px/1.5 Arial;color:#333;margin:0">No Chrome, clique no ícone de instalar na barra de endereço (ou ⋮ → Transmitir, salvar e compartilhar → Instalar página como app). Também dá para só salvar nos favoritos.</p>' +
     '<h3 style="font:bold 16px Arial;margin:20px 0 8px">Bom saber</h3><ul style="font:14px/1.6 Arial;color:#333;padding-left:18px;margin:0">' +
-    '<li>Não tem login: é só abrir.</li><li>Tudo fica salvo na planilha do Google “AleYas”.</li>' +
+    '<li>Não tem login: é só abrir.</li><li>Depois de abrir, vá em <b>Nossa casa</b> e toque no seu nome no card “Celular, PC, Ale e Yas”. Assim o app sabe quem é você: mostra quem pegou cada item e guarda o seu modo claro ou escuro.</li><li>O botão <b>✨</b> é o assistente: peça coisas como “coloca café na lista” ou “monta o cardápio da semana”.</li><li>Chegou do mercado? Em <b>Lista de compras → Preços e notas</b>, tire uma foto do cupom e a compra entra sozinha nos gastos.</li><li>Tudo fica salvo na planilha do Google “AleYas”.</li>' +
     '<li>Sem sinal no mercado? Pode marcar normalmente: sobe sozinho quando a internet voltar.</li>' +
     '<li>No mercado, use <b>Lista de compras → Modo mercado</b> e <b>Ler etiqueta</b> para pegar preços pela câmera.</li></ul>' +
     '<p style="font:12px Arial;color:#9aa;margin-top:26px">Feito com carinho para a casa de vocês. 🏡</p></div></div>';
-  MailApp.sendEmail({ to: para, subject: 'AleYas · nosso app da casa (link e como instalar)', htmlBody: html, name: 'AleYas',
+  MailApp.sendEmail({ to: para, subject: assunto || 'AleYas · nosso app da casa (link e como instalar)', htmlBody: html, name: 'AleYas',
     body: 'Abra o AleYas: ' + APP_URL + '\n\niPhone (Safari): Compartilhar → Adicionar à Tela de Início.\nAndroid (Chrome): ⋮ → Instalar app / Adicionar à tela inicial.\n\nSem login. Tudo sincroniza entre vocês pela planilha do Google.' });
   Logger.log('Instruções enviadas para ' + para);
 }
@@ -424,4 +424,11 @@ function espelhar(d) {
     if (linhas.length) sh.getRange(2, 1, linhas.length, m.cab.length).setValues(linhas);
     props.setProperty('ESP_' + m.aba, assinatura);
   });
+}
+
+
+/** Envia o link e as instruções para a Yasmin, com um recado do Ale. */
+function enviarParaYasmin() {
+  const intro = '<div style="background:#fbefe7;border-radius:14px;padding:18px 20px;margin:22px 0 4px"><p style="font:bold 17px Arial;color:#d9714a;margin:0 0 6px">Oi, meu amor ❤️</p><p style="font:15px/1.6 Arial;color:#5a3d2e;margin:0">Fiz esse app pra nossa casa: a lista do mercado, o que tem na despensa, o cardápio da semana e quanto a gente gasta, tudo juntinho e sincronizado entre o meu celular e o seu. Instala aí que fica do lado dos seus outros apps. <br>— Ale</p></div>';
+  enviarInstrucoes('yasmindias.engprod@gmail.com', intro, 'Yas, nosso app da casa chegou ❤️ · AleYas');
 }
