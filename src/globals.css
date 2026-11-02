@@ -218,3 +218,4 @@ html.escuro .sync i{background:#7fae6a}html.escuro .ai-fab{background:linear-gra
 /* Modo mercado: só a busca acompanha a rolagem (os cards de valores não ficam por cima dela) */
 .market-mode .cart-dashboard{position:static!important}.market-mode .list-card .toolbar{position:sticky;top:0!important;z-index:15}
 html.escuro .hero h2 em{color:#a9c39a}
+html.escuro .ai-fab{background:linear-gradient(135deg,#2f7a55,#3f9468);border-color:#e8875a;box-shadow:0 10px 30px #0008,0 0 0 4px #3f946826}
