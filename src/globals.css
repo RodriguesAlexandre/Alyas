@@ -182,3 +182,29 @@ textarea{width:100%;border:1px solid #dfe5d7;border-radius:7px;padding:11px 12px
 @media(max-width:800px){.list-card .toolbar .search{flex:1 1 100%}.list-card .toolbar>.secondary{flex:1}.quem-banner span{flex-basis:100%}.quem-banner .secondary{flex:1}}
 .pantry-row{display:flex;align-items:center;gap:8px;padding:11px 0;border-bottom:1px solid #f2f4ee}.pantry-row .item-name small span{margin-left:0}.pantry-row.acabou .item-name b{color:#a0a894}.pantry-acabou{font-size:11px;font-weight:600;padding:7px 11px;border-radius:7px;background:#fae9dd;color:#ae7753;white-space:nowrap}.pantry-row.acabou .pantry-acabou{background:#eef2e7;color:#7e9469}
 .pantry-row .product-icon{width:40px;height:40px;font-size:22px;flex-shrink:0;border-radius:10px}.pantry-row.acabou .product-icon{filter:grayscale(1);opacity:.55}
+.product-icon svg,.product-icon img{width:84%;height:84%;display:block}.pantry-row .product-icon{background:#f6f4ec}
+/* ===== Modo escuro ===== */
+html.escuro{color-scheme:dark;--bg:#121a16;--paper:#1b2620;--ink:#e3eadf;--muted:#98a697;--line:#2c3a32;--green:#3b7457;--lime:#2a3a2f;--cream:#121a16}
+html.escuro body{background:var(--bg);color:var(--ink)}
+html.escuro *{border-color:#2c3a32}
+html.escuro :is(.card,.stats>div,.sidebar,.connect-card,.catalog-search,.catalog-search .search,.list-card .toolbar,.ai-head,.ai-input,.ai-sugs button,.emoji-row button,.voz,.voz-btn.cancelar,.voz-btn.ok,.secondary,input,select,textarea,.modal,.ai-panel,.list-card .toolbar .search,.pantry-search){background:#1b2620;color:var(--ink)}
+html.escuro header{background:#121a16ee}
+html.escuro .sidebar{background:#17211cf5}
+html.escuro :is(.ai-msg.assistant,.budget-bar,.cart-dashboard>div,.catalog-group>h3 span,.catalog-note,.category h3 span,.gastos-kpis>div,.gc-barra,.green-card,.habit-categories>div,.hero,.ing-pick button,.montar-row,.need-button,.need-button.in-list,.ocr-text,.product-icon,.pantry-row .product-icon,.receipt-import,.recipe-preview,.soft,.supply-action,.supply-filters button,.voz-barra,nav button.active,.avatar,.icon-btn:hover,.emoji-row button.selected,.pill,.art-tag,.art-circle,.nota-link,.gm i){background:#223029;color:inherit}
+html.escuro .gm.atual i{background:#7fae6a}html.escuro .gm i{background:#4b6b4f}
+html.escuro :is(.notice,.quem-banner,.alert,.ai-msg.aviso){background:#2e261c;color:#e8c9a0}
+html.escuro :is(.in-stock,.supply-action.ok.selected,.ia-ok,.pantry-row.acabou .pantry-acabou){background:#22352a;color:#a9cc8f}
+html.escuro :is(.out,.pantry-acabou,.supply-action.out.selected){background:#3a2a20;color:#f0b48f}
+html.escuro .supply-action.low.selected{background:#3a321a;color:#f0d38f}
+html.escuro :is(h1,h2,h3,h4,b,strong,.brand,.item-name b,.mini-row b,.big-number){color:var(--ink)}
+html.escuro :is(small,.muted,.eyebrow,.category h3,.hero p,.stats p,.stats>div>span,.green-card p,nav button){color:var(--muted)}
+html.escuro nav button.active{color:#cfe3c4}
+html.escuro :is(.chips .selected,.days .selected,.shopping-tabs .selected){background:var(--green);border-color:var(--green);color:#fff}
+html.escuro .primary{background:#2f6a4c;color:#fff}html.escuro .primary:hover{background:#367a57}
+html.escuro .done .checkbox{background:#5f8a4c;border-color:#5f8a4c}
+html.escuro .overlay{background:#000a}
+html.escuro .toast{background:#2f6a4c}
+html.escuro .gastos-top li,html.escuro .gastos-var li,html.escuro .item-row,html.escuro .mini-row,html.escuro .pantry-row,html.escuro .nota-preview li{border-color:#26332b}
+html.escuro .product-icon img{filter:brightness(.95)}
+html.escuro .food-art .plate{filter:brightness(.85)}
+html.escuro :is(.catalog-search .search,.list-card .toolbar .search,.pantry-search){border-color:#34463b}html.escuro :is(.catalog-search .search,.list-card .toolbar .search,.pantry-search):focus-within{border-color:#5f9a78}

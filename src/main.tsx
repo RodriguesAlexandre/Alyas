@@ -4,6 +4,9 @@ import App from './App';
 import Conectar from './conectar';
 import { conexao, lerLinkDeConexao } from './api';
 import './globals.css';
+import { iniciarTema } from './tema';
+
+iniciarTema();
 
 lerLinkDeConexao();
 
