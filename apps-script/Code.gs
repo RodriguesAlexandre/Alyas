@@ -160,6 +160,7 @@ function tratar(p) {
     case 'ai': return assistente(p);
     case 'aistatus': return { ok: true, ligada: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') };
     case 'setai': return ligarIA(p.gemini);
+    case 'nota': return lerNota(p);
     default: return falha('Ação desconhecida.', 400);
   }
 }
@@ -248,6 +249,10 @@ function assistente(p) {
   const msgs = Array.isArray(p.messages) ? p.messages.slice(-12) : [];
   if (!msgs.length) return falha('Mensagem vazia.', 400);
   const ctx = JSON.stringify(p.context || {}).slice(0, 60000);
+  const ultima = String((msgs[msgs.length - 1] || {}).text || '');
+  const link = (ultima.match(/https?:\/\/[^\s<>"']+/) || [])[0];
+  let pagina = '';
+  if (link) pagina = textoDaPagina(link, 12000);
   const sistema =
     'Você é o assistente do AleYas, app da casa do Ale e da Yas (Belo Horizonte, compram no Supermercados BH). ' +
     'Responda em português do Brasil, curto, caloroso e prático (no máximo 6 linhas, listas com • quando ajudar). ' +
@@ -260,7 +265,8 @@ function assistente(p) {
     'Dias: 0=segunda … 6=domingo. Refeições: "Café da manhã", "Almoço", "Lanche", "Jantar". ' +
     'set_supply status: ok (tem em casa), low (acabando), out (acabou → também entra na lista). ' +
     'Unidades válidas: un, g, kg, ml, L, fatia, pacote. Use nomes de produto exatamente como no catálogo quando existirem. ' +
-    'Contexto atual da casa (JSON): ' + ctx;
+    'Se a pessoa mandar um link de receita, leia o texto da página (abaixo) e, se ela pedir para salvar ou planejar, use create_recipe trocando ingredientes que a casa não compra por equivalentes do catálogo e avisando o que trocou. ' +
+    'Contexto atual da casa (JSON): ' + ctx + (pagina ? '\n\nTexto da página ' + link + ':\n' + pagina : (link ? '\n\n(Não consegui abrir o link ' + link + '.)' : ''));
   const schema = {
     type: 'OBJECT',
     properties: {
@@ -299,11 +305,69 @@ function assistente(p) {
   return falha('Não consegui falar com a IA agora (' + ultimoErro + ').', 502);
 }
 
+/** Baixa uma página e devolve só o texto (para links de receita e de nota fiscal). */
+function textoDaPagina(url, limite) {
+  try {
+    if (!/^https?:\/\//.test(url)) return '';
+    const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: { 'User-Agent': 'Mozilla/5.0 (AleYas)' } });
+    if (r.getResponseCode() !== 200) return '';
+    return r.getContentText().replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<br\s*\/?>|<\/(p|div|tr|li|h\d)>/gi, '\n').replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&#(\d+);/g, function (_, n) { return String.fromCharCode(+n); }).replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim().slice(0, limite);
+  } catch (e) { return ''; }
+}
+
+/** Chama o Gemini tentando os modelos disponíveis; devolve o JSON da resposta. */
+function gemini(corpo) {
+  const props = PropertiesService.getScriptProperties();
+  const chave = props.getProperty('GEMINI_KEY');
+  if (!chave) return { erro: falha('IA ainda não ligada: falta a chave do Gemini.', 412) };
+  const modelos = props.getProperty('GEMINI_MODEL') ? [props.getProperty('GEMINI_MODEL')] : IA_MODELOS;
+  let ultimoErro = '';
+  for (let i = 0; i < modelos.length; i++) {
+    const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelos[i] + ':generateContent', {
+      method: 'post', contentType: 'application/json', payload: JSON.stringify(corpo), muteHttpExceptions: true, headers: { 'x-goog-api-key': chave } });
+    const code = r.getResponseCode();
+    if (code === 404) { ultimoErro = 'modelo ' + modelos[i] + ' indisponível'; continue; }
+    if (code !== 200) { ultimoErro = 'Gemini respondeu ' + code; if (code === 400 || code === 403) break; continue; }
+    const j = JSON.parse(r.getContentText());
+    const txt = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(function (x) { return x.text || ''; }).join('');
+    try { return { json: JSON.parse(txt) }; } catch (e) { return { erro: falha('A IA respondeu num formato inesperado. Tente de novo.', 502) }; }
+  }
+  return { erro: falha('Não consegui falar com a IA agora (' + ultimoErro + ').', 502) };
+}
+
+/** Lê uma nota fiscal (link do QR Code da NFC-e ou foto do cupom) e devolve os itens. */
+function lerNota(p) {
+  const UNID = ['un', 'g', 'kg', 'ml', 'L', 'fatia', 'pacote'];
+  const CATS = ['Hortifruti', 'Proteínas', 'Laticínios', 'Mercearia', 'Bebidas', 'Limpeza', 'Higiene', 'Utilidades', 'Outros'];
+  if (!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY')) return falha('Para ler notas, ligue a IA em Nossa casa.', 412);
+  const partes = [];
+  if (p.image) {
+    const img = String(p.image);
+    if (img.length > 6000000) return falha('Foto grande demais. Tente uma foto mais próxima do cupom.', 400);
+    partes.push({ inline_data: { mime_type: String(p.mime || 'image/jpeg'), data: img } });
+  } else if (p.url) {
+    const texto = textoDaPagina(String(p.url), 30000);
+    if (!texto || texto.length < 80) return falha('Não consegui abrir a nota por esse link (a Sefaz às vezes bloqueia). Tire uma foto do cupom que eu leio.', 422);
+    partes.push({ text: 'Página da nota fiscal:\n' + texto });
+  } else return falha('Mande o link do QR Code ou uma foto do cupom.', 400);
+  partes.push({ text: 'Extraia os dados desta nota fiscal de supermercado brasileira. Para cada produto: name (descrição legível em português, sem códigos; expanda abreviações óbvias como "QJ MUSS" → "Queijo muçarela"), qty, unit (' + UNID.join(', ') + '; produtos por peso em kg), price (preço unitário pago), lineTotal (valor total da linha, já com descontos), cat (' + CATS.join(', ') + '). Também: store (nome do mercado), date (AAAA-MM-DD), total (valor pago), ref (número/série da nota ou chave de acesso, se houver). Não invente itens; se algo estiver ilegível, use o que der para ler.' });
+  const schema = { type: 'OBJECT', properties: {
+    store: { type: 'STRING' }, date: { type: 'STRING' }, total: { type: 'NUMBER' }, ref: { type: 'STRING' },
+    items: { type: 'ARRAY', items: { type: 'OBJECT', properties: { name: { type: 'STRING' }, qty: { type: 'NUMBER' }, unit: { type: 'STRING', enum: UNID }, price: { type: 'NUMBER' }, lineTotal: { type: 'NUMBER' }, cat: { type: 'STRING', enum: CATS } }, required: ['name', 'qty', 'unit', 'lineTotal'] } }
+  }, required: ['items', 'total'] };
+  const g = gemini({ contents: [{ role: 'user', parts: partes }], generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.1 } });
+  if (g.erro) return g.erro;
+  const n = g.json || {};
+  if (!Array.isArray(n.items) || !n.items.length) return falha('Não encontrei itens nessa nota. Tente outra foto, bem de frente e com luz.', 422);
+  return { ok: true, nota: n };
+}
+
 /** Recebe a chave do Gemini pelo app, testa e guarda nas Propriedades do script (nunca é devolvida). */
 function ligarIA(chave) {
   chave = String(chave || '').trim();
   if (chave === 'desligar') { PropertiesService.getScriptProperties().deleteProperty('GEMINI_KEY'); return { ok: true, ligada: false }; }
-  if (!/^[A-Za-z0-9_\-]{30,80}$/.test(chave)) return falha('Essa chave não parece válida. Copie de novo em aistudio.google.com/apikey.', 400);
+  if (!/^[A-Za-z0-9_.\-]{20,300}$/.test(chave)) return falha('Essa chave não parece válida. Copie de novo em aistudio.google.com/apikey.', 400);
   const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', { muteHttpExceptions: true, headers: { 'x-goog-api-key': chave } });
   if (r.getResponseCode() !== 200) return falha('O Google recusou essa chave (' + r.getResponseCode() + '). Confira se copiou inteira.', 400);
   PropertiesService.getScriptProperties().setProperty('GEMINI_KEY', chave);

@@ -26,8 +26,8 @@ export default function CartaoIA() {
           <li>Copie a chave e cole aqui embaixo.</li>
         </ol>
         <form onSubmit={ligar} className="ia-form">
-          <input type="password" autoComplete="off" value={chave} onChange={e => setChave(e.target.value)} placeholder="Cole a chave do Gemini" aria-label="Chave do Gemini" required minLength={30} />
-          <button className="primary" disabled={busy || chave.trim().length < 30}>{busy ? 'Testando…' : 'Ligar IA'}</button>
+          <input type="password" autoComplete="off" value={chave} onChange={e => setChave(e.target.value)} placeholder="Cole a chave do Gemini" aria-label="Chave do Gemini" required minLength={20} />
+          <button className="primary" disabled={busy || chave.trim().length < 20}>{busy ? 'Testando…' : 'Ligar IA'}</button>
         </form>
         <small className="muted">A chave é testada e guardada só na planilha de vocês no Google. Ela não fica no código nem aparece no app.</small>
       </>}

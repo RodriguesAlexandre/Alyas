@@ -18,7 +18,16 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
   const [pensando, setPensando] = useState(false);
   const [semIA, setSemIA] = useState(false);
   const [gravando, setGravando] = useState(false);
+  const [digitando, setDigitando] = useState(false);
   const fim = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    // Esconde o botão ✨ enquanto o teclado está aberto num campo do app (celular).
+    const campo = (e: Event) => { const t = e.target as HTMLElement; return !!t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) && !t.closest('.ai-panel') && window.innerWidth < 800; };
+    const on = (e: Event) => { if (campo(e)) setDigitando(true); };
+    const off = () => setTimeout(() => { const a = document.activeElement as HTMLElement | null; if (!a || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) setDigitando(false); }, 120);
+    document.addEventListener('focusin', on); document.addEventListener('focusout', off);
+    return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); };
+  }, []);
   const dataRef = useRef(data); dataRef.current = data;
   useEffect(() => { const f = () => setSemIA(false); window.addEventListener('aleyas-ia', f); return () => window.removeEventListener('aleyas-ia', f); }, []);
 
@@ -63,7 +72,7 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
   const temVoz = suportaVoz();
 
   return <>
-    {!aberto && <button className="ai-fab" aria-label="Abrir assistente" onClick={() => setAberto(true)}><Sparkles size={22} /></button>}
+    {!aberto && !digitando && <button className="ai-fab" aria-label="Abrir assistente" onClick={() => setAberto(true)}><Sparkles size={22} /></button>}
     {aberto && <section className="ai-panel" role="complementary" aria-label="Assistente AleYas">
       <div className="ai-head"><span className="ai-avatar"><Sparkles size={16} /></span><div><b>Assistente</b><small>{semIA ? 'modo simples · ligue a IA em Nossa casa' : 'ideias e ações na casa'}</small></div>
         <button className="icon-btn" title="Fechar" onClick={() => setAberto(false)}><X size={18} /></button></div>
