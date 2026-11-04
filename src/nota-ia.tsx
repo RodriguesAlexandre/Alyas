@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { Camera, Link2, Check, X, ScanLine } from 'lucide-react';
 import { api } from './api';
 import { montarNota, notaDuplicada, registrarNota } from './nota-logic';
+import { abrirCamera, soltarCamera, lerQR } from './camera';
 
 const money = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -26,12 +27,12 @@ export default function NotaIA({ data, save, busy }: { data: any; save: (d: any,
   const [lendoQR, setLendoQR] = useState(false);
   const foto = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLVideoElement>(null);
-  const temQR = typeof window !== 'undefined' && 'BarcodeDetector' in window;
+  const temQR = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
 
   async function ler(p: { url?: string; image?: string }, msg: string) {
     setErro(''); setNota(null); setLendo(msg);
     try { setNota(montarNota(await api.lerNota(p))); }
-    catch (e: any) { setErro(e?.code === 412 ? 'Para ler notas, ligue a IA em Nossa casa (é grátis).' : e?.message || 'Não consegui ler a nota.'); }
+    catch (e: any) { setErro(e?.code === 412 ? 'Para ler notas, ligue a IA em Nossa casa (é grátis).' : p.url ? 'Li o QR Code, mas a Sefaz ainda não liberou essa nota (cupom em contingência demora algumas horas). Tire uma foto do cupom que eu leio pelos itens.' : e?.message || 'Não consegui ler a nota.'); }
     finally { setLendo(''); }
   }
   async function escanear() {
@@ -39,19 +40,19 @@ export default function NotaIA({ data, save, busy }: { data: any; save: (d: any,
     await new Promise(ok => setTimeout(ok, 60));
     let stream: MediaStream | null = null;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      stream = await abrirCamera();
       const v = video.current!; v.srcObject = stream; await v.play();
-      const det = new (window as any).BarcodeDetector({ formats: ['qr_code'] });
-      const fim = Date.now() + 30000;
-      while (Date.now() < fim && stream.active) {
-        const r = await det.detect(v).catch(() => []);
-        const url = r.find((x: any) => /^https?:\/\//.test(x.rawValue))?.rawValue;
-        if (url) { stream.getTracks().forEach(t => t.stop()); setLendoQR(false); setLink(url); return ler({ url }, 'Lendo a nota do QR Code…'); }
-        await new Promise(ok => setTimeout(ok, 350));
+      const fim = Date.now() + 40000;
+      while (Date.now() < fim && v.srcObject) {
+        if (v.readyState >= 2) {
+          const url = await lerQR(v, v.videoWidth, v.videoHeight);
+          if (/^https?:\/\//.test(url)) { v.srcObject = null; setLendoQR(false); soltarCamera(); setLink(url); return ler({ url }, 'Lendo a nota do QR Code…'); }
+        }
+        await new Promise(ok => setTimeout(ok, 250));
       }
-      setErro('Não achei o QR Code. Tente de novo ou tire uma foto do cupom.');
-    } catch { setErro('Não consegui abrir a câmera. Cole o link ou tire uma foto do cupom.'); }
-    finally { stream?.getTracks().forEach(t => t.stop()); setLendoQR(false); }
+      if (v.srcObject) setErro('Não achei o QR Code. Chegue mais perto, com o QR no meio da tela, ou tire uma foto do cupom.');
+    } catch (e: any) { setErro(e?.name === 'NotAllowedError' ? 'Permita o uso da câmera para o AleYas e tente de novo.' : 'Não consegui abrir a câmera. Cole o link ou tire uma foto do cupom.'); }
+    finally { if (video.current) video.current.srcObject = null; if (stream) soltarCamera(); setLendoQR(false); }
   }
   async function salvar() {
     if (!nota) return;
@@ -69,7 +70,7 @@ export default function NotaIA({ data, save, busy }: { data: any; save: (d: any,
       <button className={temQR ? 'secondary' : 'primary'} disabled={!!lendo || busy} onClick={() => foto.current?.click()}><Camera size={17} /> Foto do cupom</button>
       <input ref={foto} type="file" accept="image/*" capture="environment" hidden onChange={async e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) { try { await ler({ image: await fotoBase64(f) }, 'Lendo a foto do cupom… (uns 20 segundos)'); } catch { setErro('Não consegui abrir essa foto.'); } } }} />
     </div>
-    {lendoQR && <div className="nota-video"><video ref={video} playsInline muted /><button className="secondary" onClick={() => { (video.current?.srcObject as MediaStream | null)?.getTracks().forEach(t => t.stop()); setLendoQR(false); }}><X size={15} /> Cancelar</button></div>}
+    {lendoQR && <div className="nota-video"><video ref={video} playsInline muted /><button className="secondary" onClick={() => { if (video.current) video.current.srcObject = null; soltarCamera(); setLendoQR(false); }}><X size={15} /> Cancelar</button></div>}
     <form className="nota-link" onSubmit={e => { e.preventDefault(); if (/^https?:\/\//.test(link.trim())) ler({ url: link.trim() }, 'Abrindo a nota…'); else setErro('Cole o link completo do QR Code (começa com https://).'); }}>
       <Link2 size={16} /><input aria-label="Link da nota fiscal" placeholder="Cole aqui o link do QR Code da nota" value={link} onChange={e => setLink(e.target.value)} />
       <button className="secondary" disabled={!!lendo || busy || !link.trim()}>Ler</button>
