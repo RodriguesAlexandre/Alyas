@@ -3,6 +3,8 @@ import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, S
 import { CATS_CASA, STATUS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, iconeCasa, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
+import { api } from './api';
+import { Radar, RefreshCw } from 'lucide-react';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : NaN; };
@@ -18,7 +20,19 @@ function Capa({ item }: { item: ItemCasa }) {
   return item.fotos?.length ? <Foto id={item.fotos[0]} className="capa" /> : <span className="casa-foto capa vazia"><img src={'produtos/' + iconeCasa(item) + '.webp'} alt="" /></span>;
 }
 
-export default function Casa({ data, save, busy, ready }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean }) {
+async function puxarRadar(manual: boolean, onReload?: () => void) {
+  const hoje = new Date().toLocaleDateString('sv-SE');
+  try {
+    if (!manual && (localStorage.getItem('aleyas-radar-dia') === hoje || new Date().getHours() < 9)) return null;
+    const r = await api.radar();
+    localStorage.setItem('aleyas-radar-dia', hoje);
+    if (r.novo) onReload?.();
+    return r;
+  } catch (e: any) { if (manual) throw e; return null; }
+}
+
+export default function Casa({ data, save, busy, ready, onReload }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean; onReload?: () => void }) {
+  useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
   const itens: ItemCasa[] = data.casa || [];
   const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
   const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState(false);
@@ -43,21 +57,22 @@ export default function Casa({ data, save, busy, ready }: { data: any; save: (d:
       <span className="casa-info"><b>{i.name}</b><small>{i.cat}{i.comodo ? ' · ' + i.comodo : ''}</small>
         <span className="casa-linha"><span className={'casa-status ' + i.status}>{LABEL[i.status]}</span>
           {i.status === 'temos' ? (i.preco ? <em>{money(i.preco)}</em> : null) : m ? <em>a partir de {money(m.preco)}</em> : i.preco ? <em>≈ {money(i.preco)}</em> : null}
-          {i.fotos?.length > 1 && <small>{i.fotos.length} fotos</small>}</span></span>
+          {i.fotos?.length > 1 && <small>{i.fotos.length} fotos</small>}</span>{i.radar && i.status !== 'temos' && <small className="casa-radar-mini"><Radar size={11} /> Radar: {i.radar.decisao} · {new Date(i.radar.data + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small>}</span>
     </button>; })}</div>
       : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Cadastre o que vocês já têm (com foto) e o que estão cotando, como o robô aspirador.'}</p></section>}
-    {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} busy={busy} onClose={() => { setNovo(false); setAberto(null); }}
+    {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} busy={busy} onReload={onReload} onClose={() => { setNovo(false); setAberto(null); }}
       onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(false); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
   </>;
 }
 
-function Detalhe({ inicial, busy, onClose, onSave, onDelete }: { inicial: ItemCasa | null; busy: boolean; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
-  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios de mesa', status: 'temos', fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined };
+function Detalhe({ inicial, busy, onClose, onSave, onDelete, onReload }: { inicial: ItemCasa | null; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
+  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios', status: 'temos', fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined };
   const [it, setIt] = useState<ItemCasa>(base);
   const [editando, setEditando] = useState(!inicial);
   const [enviando, setEnviando] = useState(0), [erro, setErro] = useState(''), [ver, setVer] = useState(''), [apagar, setApagar] = useState(false);
   const [cot, setCot] = useState({ loja: '', preco: '', link: '' });
+  const [puxando, setPuxando] = useState(false);
   const cam = useRef<HTMLInputElement>(null), gal = useRef<HTMLInputElement>(null);
   const salvoNoApp = !!inicial;
   const m = melhorCotacao(it);
@@ -136,10 +151,16 @@ function Detalhe({ inicial, busy, onClose, onSave, onDelete }: { inicial: ItemCa
         {it.dataCompra && <><dt>Comprado em</dt><dd>{new Date(it.dataCompra + 'T12:00').toLocaleDateString('pt-BR')}</dd></>}
         {it.note && <><dt>Observações</dt><dd>{it.note}</dd></>}
       </dl>
+      {it.radar && it.status !== 'temos' && <div className={'casa-radar ' + (/comprar/i.test(it.radar.decisao) ? 'ok' : /validar/i.test(it.radar.decisao) ? 'warn' : '')}>
+        <span><Radar size={16} /> <b>Radar diário · {it.radar.decisao}</b><small>atualizado em {new Date(it.radar.data + 'T12:00').toLocaleDateString('pt-BR')}</small></span>
+        {it.radar.titulo && <p>{it.radar.titulo}</p>}
+        <div>{it.radar.link && <a className="secondary" href={it.radar.link} target="_blank" rel="noopener noreferrer">Abrir dashboard <ExternalLink size={13} /></a>}
+          <button className="secondary" disabled={puxando} onClick={async () => { setPuxando(true); setErro(''); try { const r = await puxarRadar(true, onReload); if (r && !r.novo) setErro('O radar ainda não mandou nada mais novo que ' + new Date(it.radar!.data + 'T12:00').toLocaleDateString('pt-BR') + '.'); } catch (e: any) { setErro(e?.message || 'Não consegui ler o e-mail do radar.'); } finally { setPuxando(false); } }}><RefreshCw size={13} /> {puxando ? 'Buscando…' : 'Buscar do e-mail'}</button></div>
+      </div>}
       {it.status !== 'temos' && <div className="casa-cotacoes">
         <h3><Tag size={16} /> Cotações {m && <small>melhor: {money(m.preco)} na {m.loja}</small>}</h3>
         {[...it.cotacoes].sort((a, b) => a.preco - b.preco).map(c => <div key={c.id} className={'cotacao' + (m?.id === c.id ? ' melhor' : '')}>
-          <span><b>{c.loja}</b><small>{new Date(c.data).toLocaleDateString('pt-BR')}{c.link && <> · <a href={c.link} target="_blank" rel="noopener noreferrer">abrir <ExternalLink size={11} /></a></>}</small></span>
+          <span><b>{c.loja}</b><small>{new Date(c.data).toLocaleDateString('pt-BR')}{c.obs ? ' · ' + c.obs : ''}{c.link && <> · <a href={c.link} target="_blank" rel="noopener noreferrer">abrir <ExternalLink size={11} /></a></>}</small></span>
           <strong>{money(c.preco)}</strong>
           <button className="secondary" disabled={busy} onClick={() => onSave(comprei(it, c), 'Comprado! ' + it.name + ' agora está em Temos').then(ok => ok && setIt(comprei(it, c)))}>Comprei aqui</button>
           <button className="icon-btn" aria-label={'Apagar cotação ' + c.loja} disabled={busy} onClick={() => { const prox = { ...it, cotacoes: it.cotacoes.filter(x => x.id !== c.id) }; setIt(prox); onSave(prox, 'Cotação apagada'); }}><Trash2 size={14} /></button>

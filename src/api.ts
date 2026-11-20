@@ -79,6 +79,7 @@ export const api = {
   salvarFoto: (id: string, dados: string) => chamar('fotoSalvar', { id, dados }, 60000).then(r => r.id as string),
   foto: (id: string) => chamar('foto', { id }, 45000).then(r => r.dados as string),
   apagarFoto: (id: string) => chamar('fotoApagar', { id }, 30000),
+  radar: () => chamar('radar', {}, 90000) as Promise<{ ok: boolean; novo: boolean; data?: string; decisao?: string }>,
   notas: () => chamar('receipts').then(r => r.notes as any[]),
 };
 

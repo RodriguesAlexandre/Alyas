@@ -164,6 +164,7 @@ function tratar(p) {
     case 'fotoSalvar': return salvarFoto(p);
     case 'foto': return lerFoto(p);
     case 'fotoApagar': return apagarFoto(p);
+    case 'radar': return importarRadar();
     default: return falha('Ação desconhecida.', 400);
   }
 }
@@ -451,6 +452,56 @@ function apagarFoto(p) {
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   try { const sh = abaFotos(); linhasDaFoto(sh, id).reverse().forEach(function (r) { sh.deleteRow(r); }); } finally { lock.releaseLock(); }
   return { ok: true };
+}
+
+// ---------- Radar do robô aspirador: lê o e-mail diário e atualiza as cotações na aba Casa ----------
+// O e-mail traz um bloco [[ALEYAS]]{json}[[/ALEYAS]] no texto simples (só leitura do Gmail; nada é enviado).
+function importarRadar() {
+  let dados = null;
+  const threads = GmailApp.search('subject:"Robô aspirador" newer_than:4d', 0, 6);
+  threads.forEach(function (t) {
+    t.getMessages().forEach(function (m) {
+      const corpo = m.getPlainBody() || '';
+      const x = corpo.match(/\[\[ALEYAS\]\]([\s\S]*?)\[\[\/ALEYAS\]\]/);
+      if (!x) return;
+      try { const d = JSON.parse(x[1].replace(/=?\r?\n/g, '').trim()); if (d && /^\d{4}-\d{2}-\d{2}$/.test(d.data) && (!dados || d.data > dados.data)) dados = d; } catch (e) { /* bloco quebrado: ignora */ }
+    });
+  });
+  if (!dados) return { ok: true, novo: false };
+  const lock = LockService.getScriptLock(); if (!lock.tryLock(15000)) return falha('A planilha está ocupada.', 503);
+  let atual;
+  try { atual = lerCasa(); } finally { lock.releaseLock(); }
+  if (!atual.ok || !atual.data) return falha('Casa ainda vazia.', 503);
+  const casa = (atual.data.casa || []).slice();
+  if (casa.some(function (i) { return i.radar && i.radar.data === dados.data; })) return { ok: true, novo: false, data: dados.data, decisao: dados.decisao };
+  const chave = function (s) { s = String(s || '').toLowerCase(); return s.indexOf('h50') >= 0 ? 'h50' : s.indexOf('d20') >= 0 ? 'd20' : s.indexOf('l10') >= 0 ? 'l10s' : s.indexOf('k4000') >= 0 ? 'k4000' : s.replace(/[^a-z0-9]+/g, '-').slice(0, 30); };
+  const num = function (v) { const n = Number(v); return isFinite(n) && n > 0 && n < 1000000 ? Math.round(n * 100) / 100 : 0; };
+  (dados.modelos || []).forEach(function (mo) {
+    const k = chave(mo.modelo);
+    const ofertas = (mo.ofertas || []).filter(function (o) { return num(o.preco_final || o.preco) && o.entrega !== 'não entrega'; });
+    let idx = casa.findIndex(function (i) { return chave(i.name) === k || chave(i.modelo) === k; });
+    if (idx < 0) {
+      if (!ofertas.length) return;
+      casa.push({ id: 'casa-radar-' + k, name: ('Robô aspirador ' + String(mo.modelo).replace(/^rob[oô] aspirador\s*/i, '')).slice(0, 80), cat: 'Eletroeletrônicos', status: 'cotando', fotos: [], cotacoes: [], criado: new Date().toISOString(), note: 'Acompanhado pelo radar diário.' });
+      idx = casa.length - 1;
+    }
+    const item = Object.assign({}, casa[idx]);
+    if (item.status === 'temos') return;
+    const manuais = (item.cotacoes || []).filter(function (c) { return String(c.id).indexOf('radar-') !== 0; });
+    const novas = ofertas.slice(0, 10).map(function (o, n) {
+      const obs = [o.entrega === 'entrega' ? 'entrega na região' : 'entrega não confirmada', o.frete_validado ? 'frete incluso' : 'frete não validado', o.obs].filter(function (x) { return x; }).join(' · ');
+      const c = { id: 'radar-' + dados.data + '-' + n, loja: (String(o.loja || 'Loja') + (o.vendedor ? ' · ' + o.vendedor : '')).slice(0, 80), preco: num(o.preco_final || o.preco), data: dados.data + 'T09:00:00-03:00', obs: obs.slice(0, 200) };
+      if (/^https?:\/\//.test(String(o.link || ''))) c.link = String(o.link).slice(0, 500);
+      return c;
+    });
+    item.cotacoes = manuais.concat(novas).slice(-30);
+    item.radar = { data: dados.data, decisao: String(dados.decisao || '').slice(0, 40), titulo: String(mo.resumo || dados.titulo || '').slice(0, 300) };
+    if (/^https?:\/\//.test(String(dados.dashboard || ''))) item.radar.link = String(dados.dashboard).slice(0, 500);
+    casa[idx] = item;
+  });
+  const r = salvarCasa(Object.assign({}, atual.data, { casa: casa }), atual.revision);
+  if (!r.ok) return r;
+  return { ok: true, novo: true, data: dados.data, decisao: dados.decisao };
 }
 
 function garantirAba(nome, cab) {

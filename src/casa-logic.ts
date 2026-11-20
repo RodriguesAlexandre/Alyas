@@ -1,5 +1,5 @@
 // Itens da casa (utensílios, eletrônicos…): categorias, status, cotações e totais.
-export const CATS_CASA = ['Utensílios de mesa', 'Organização e limpeza', 'Eletrônicos', 'Eletroeletrônicos', 'Outros'] as const;
+export const CATS_CASA = ['Cama, mesa e banho', 'Utensílios', 'Organização e limpeza', 'Eletrônicos', 'Eletroeletrônicos', 'Móveis e decoração', 'Outros'] as const;
 export const STATUS_CASA = [
   { v: 'temos', l: 'Temos' },
   { v: 'cotando', l: 'Cotando' },
@@ -11,6 +11,7 @@ export type ItemCasa = {
   id: string; name: string; cat: typeof CATS_CASA[number]; status: 'temos' | 'cotando' | 'queremos';
   comodo?: string; marca?: string; modelo?: string; preco?: number | null; dataCompra?: string; loja?: string;
   note?: string; fotos: string[]; cotacoes: Cotacao[]; criado: string; por?: string;
+  radar?: { data: string; decisao: string; titulo?: string; link?: string };
 };
 const n = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -47,8 +48,8 @@ export function iconeCasa(i: { name: string; cat: string }): string {
     [/chaleira|bule|cafeteira|garrafa termica/, 'teapot'], [/panela|frigideira|airfryer|air fryer|fritadeira/, 'cooking'], [/geladeira|freezer|gelo/, 'ice'],
     [/prato|talher|faca|garfo|jogo de jantar|travessa/, 'fork-and-knife-with-plate'], [/colher|concha/, 'spoon'], [/tigela|bowl|pote|cumbuca/, 'bowl-with-spoon'],
     [/xicara|caneca|copo|taca/, 'hot-beverage'], [/vassoura|rodo|mop/, 'broom'], [/balde/, 'bucket'], [/cesto|organizador|caixa organizadora|cesta/, 'basket'],
-    [/desentupidor/, 'plunger'], [/esponja/, 'sponge'], [/sofa|poltrona/, 'couch-and-lamp'], [/cama|colchao|travesseiro/, 'bed'], [/cadeira|banqueta|mesa/, 'chair'],
+    [/desentupidor/, 'plunger'], [/esponja/, 'sponge'], [/sofa|poltrona/, 'couch-and-lamp'], [/cama|colchao|travesseiro|lencol|edredom|cobertor|toalha|fronha|tapete de banho|roupao/, 'bed'], [/cadeira|banqueta|mesa/, 'chair'],
   ];
   for (const [re, s] of M) if (re.test(k)) return s;
-  return ({ 'Utensílios de mesa': 'fork-and-knife-with-plate', 'Organização e limpeza': 'broom', 'Eletrônicos': 'laptop', 'Eletroeletrônicos': 'electric-plug' } as any)[i.cat] || 'package';
+  return ({ 'Utensílios': 'fork-and-knife-with-plate', 'Organização e limpeza': 'broom', 'Eletrônicos': 'laptop', 'Eletroeletrônicos': 'electric-plug', 'Cama, mesa e banho': 'bed', 'Móveis e decoração': 'couch-and-lamp' } as any)[i.cat] || 'package';
 }
