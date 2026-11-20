@@ -76,7 +76,7 @@ export function criarCena(el: HTMLElement): Cena {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
-  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
+  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.localClippingEnabled = true; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
   el.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.55;
@@ -194,20 +194,31 @@ export function criarCena(el: HTMLElement): Cena {
       panos.forEach(([c, pw, ph, z]) => { const p = em(g, plano(pw, ph, M(c, { side: THREE.DoubleSide, roughness: 1 })), 0, -ph / 2, z * d / 2.2); p.rotation.y = Math.PI / 2; });
       return g;
     },
-    balcao(w, d, h) {
-      const g = new THREE.Group(); em(g, rb(w - .04, h - .04, d - .12, branco, .01), 0, (h - .04) / 2, -.04);
-      em(g, bx(w, .035, d + .02, granito), 0, h - .018, 0); portas(g, w - .04, h - .14, d - .12, 4, .06);
-      em(g, bx(w, .4, .04, M('#ece9e3', { roughness: .8 })), 0, h + .2, d / 2 - .02); em(g, bx(w, .03, .3, granito), 0, h + .4, d / 2 + .07);
-      const lumi = new THREE.Group(); em(lumi, cil(.07, .08, .12, preto, 16), 0, .06, 0); em(lumi, deitado(cil(.008, .008, .32, preto, 6), 'z'), 0, .25, .04); em(lumi, cil(.04, .07, .1, preto, 14), 0, .36, .18); em(g, lumi, -w * .1, h + .415, d / 2 + .05);
-      const liq = new THREE.Group(); em(liq, rb(.16, .14, .16, preto, .03), 0, .07, 0); em(liq, cil(.07, .06, .22, M('#cfd6db', { transparent: true, opacity: .5 }), 16), 0, .25, 0); em(g, liq, -w * .3, h + .415, d / 2 + .05);
-      const garrafa = new THREE.Group(); em(garrafa, cil(.04, .04, .22, M('#3b6b2f', { roughness: .1 }), 14), 0, .11, 0); em(garrafa, cil(.012, .025, .1, M('#3b6b2f', { roughness: .1 }), 10), 0, .27, 0); em(g, garrafa, w * .35, h + .415, d / 2 + .05);
-      em(g, rb(.4, .01, .25, M('#a7774b', { roughness: .9 }), .004), w * .38, h + .42, d / 2 + .1);
+    balcao(w, d) {
+      const g = new THREE.Group(); const base = d - .12, zc = -d / 2 + base / 2;
+      em(g, rb(w - .02, .86, base, branco, .01), 0, .43, zc);
+      const pg = new THREE.Group(); portas(pg, w - .02, .78, base, 4, .06); pg.rotation.y = Math.PI; pg.position.z = zc; g.add(pg);
+      em(g, bx(w - .02, .06, .02, pretoFosco), 0, .03, -d / 2 + .03);
+      em(g, bx(w, .035, base + .04, granito), 0, .9, zc);
+      em(g, bx(w, .52, .1, M('#ece9e3', { roughness: .8 })), 0, 1.16, d / 2 - .11); em(g, bx(w, .035, .34, granito), 0, 1.44, d / 2 - .02);
+      const lumi = new THREE.Group(); em(lumi, cil(.07, .08, .12, preto, 16), 0, .06, 0); em(lumi, deitado(cil(.008, .008, .32, preto, 6), 'z'), 0, .25, .04); em(lumi, cil(.04, .07, .1, preto, 14), 0, .36, .18); em(g, lumi, -w * .1, 1.44, d / 2 + .05);
+      const liq = new THREE.Group(); em(liq, rb(.16, .14, .16, preto, .03), 0, .07, 0); em(liq, cil(.07, .06, .22, M('#cfd6db', { transparent: true, opacity: .5 }), 16), 0, .25, 0); em(g, liq, -w * .3, 1.44, d / 2 + .05);
+      const garrafa = new THREE.Group(); em(garrafa, cil(.04, .04, .22, M('#3b6b2f', { roughness: .1 }), 14), 0, .11, 0); em(garrafa, cil(.012, .025, .1, M('#3b6b2f', { roughness: .1 }), 10), 0, .27, 0); em(g, garrafa, w * .35, 1.44, d / 2 + .05);
+      em(g, rb(.4, .01, .25, M('#a7774b', { roughness: .9 }), .004), w * .38, 1.44, d / 2 + .1);
       return g;
     },
     'pia-cozinha'(w, d) {
       const g = new THREE.Group(); em(g, bx(w * .8, .015, d * .9, inox), 0, .002, 0); em(g, bx(w * .7, .01, d * .75, M('#8f9499', { metalness: .8, roughness: .3 })), 0, .009, 0);
       em(g, cil(.015, .018, .28, cromo, 12), w * .3, .14, -d * .3); const arco = em(g, new THREE.Mesh(new THREE.TorusGeometry(.07, .011, 8, 16, Math.PI), cromo), w * .3, .28, -d * .3 + .07); arco.rotation.y = Math.PI / 2;
-      const esc = new THREE.Group(); em(esc, rb(.36, .02, .26, cromo, .005), 0, .01, 0); [0, 1, 2].forEach(i => em(esc, cil(.09, .09, .01, ceramica, 20), -.1 + i * .1, .1, 0).rotation.x = Math.PI / 2); em(esc, cil(.035, .035, .2, M('#d94b8a'), 12), .1, .12, .05); em(g, esc, -w * .2, .02, -d * .2);
+      return g;
+    },
+    escorredor(w, d) {
+      const g = new THREE.Group(); em(g, rb(w, .02, d, cromo, .005), 0, .01, 0);
+      [-1, 1].forEach(sx => [-1, 1].forEach(sz => em(g, cil(.004, .004, .14, cromo, 6), sx * (w / 2 - .01), .08, sz * (d / 2 - .01))));
+      for (let i = 0; i < 6; i++) em(g, deitado(cil(.003, .003, d, cromo, 4), 'z'), -w / 2 + .03 + i * (w - .06) / 5, .15, 0);
+      [0, 1, 2, 3].forEach(i => { const pr = em(g, cil(.1, .1, .012, i % 2 ? M('#f6f6f4', { roughness: .2 }) : M('#1f3b73', { roughness: .3 }), 22), -w / 2 + .1 + i * .07, .12, 0); pr.rotation.z = Math.PI / 2 - .15; });
+      [0, 1, 2].forEach(i => em(g, cil(.03, .025, .1, M('#cfd8dc', { transparent: true, opacity: .6, roughness: .1 }), 12), w * .3, .07, -d / 3 + i * d / 3));
+      em(g, cil(.05, .045, .08, M('#c13b3b'), 16), w * .18, .06, d * .25); em(g, rb(.14, .07, .1, M('#d26aa6'), .02), 0, .2, 0);
       return g;
     },
     filtro(w, d, h) { const g = new THREE.Group(); em(g, cil(w / 2.4, w / 2, h * .55, M('#8a5236', { roughness: .9 }), 20), 0, h * .275, 0); em(g, cil(w / 2.4, w / 2.4, h * .45, M('#6b6f73', { transparent: true, opacity: .7, roughness: .2 }), 20), 0, h * .775, 0); em(g, deitado(cil(.01, .01, .05, M('#c98'), 6), 'z'), 0, h * .15, w / 2); return g; },
@@ -232,17 +243,17 @@ export function criarCena(el: HTMLElement): Cena {
     sofa(w, d, h, f) {
       const g = new THREE.Group(); const X = (x: number) => m(x - f.x) - w / 2, Z = (y: number) => m(y - f.y) - d / 2;
       const peca = (x1: number, y1: number, x2: number, y2: number, mat: THREE.Material, y0: number, hh: number, r = .05) => em(g, rb(m(x2 - x1), hh, m(y2 - y1), mat, r), (X(x1) + X(x2)) / 2, y0 + hh / 2, (Z(y1) + Z(y2)) / 2);
-      peca(52, 220, 76, 300, carameloEsc, 0, .2, .03); peca(76, 220, 120, 244, carameloEsc, 0, .2, .03);
-      [[59, 227, 76, 247], [59, 247, 76, 268], [59, 268, 76, 294]].forEach(([a, b, c2, d2]) => peca(a + .3, b + .3, c2 - .3, d2 - .3, caramelo, .2, .2, .07));
-      [[76, 227, 95, 244], [95, 227, 114, 244]].forEach(([a, b, c2, d2]) => peca(a + .3, b + .3, c2 - .3, d2 - .3, caramelo, .2, .2, .07));
-      [[52, 222, 59, 246], [52, 246, 59, 270], [52, 270, 59, 300]].forEach(([a, b, c2, d2]) => peca(a, b + .2, c2, d2 - .2, carameloEsc, .2, .42, .05));
-      [[59, 220, 82, 227], [82, 220, 101, 227], [101, 220, 120, 227]].forEach(([a, b, c2, d2]) => peca(a + .2, b, c2 - .2, d2, carameloEsc, .2, .42, .05));
-      peca(59, 294, 76, 300, carameloEsc, .2, .22, .04); peca(114, 227, 120, 244, carameloEsc, .2, .22, .04);
+      peca(52, 166, 76, 300, carameloEsc, 0, .2, .03); peca(76, 166, 120, 190, carameloEsc, 0, .2, .03);
+      for (let y = 173; y < 294; y += 24) peca(59.3, y + .3, 75.7, Math.min(y + 24, 294) - .3, caramelo, .2, .2, .07);
+      [[76, 173, 95, 190], [95, 173, 114, 190]].forEach(([a, b, c2, d2]) => peca(a + .3, b + .3, c2 - .3, d2 - .3, caramelo, .2, .2, .07));
+      for (let y = 168; y < 300; y += 26.4) peca(52, y + .2, 59, Math.min(y + 26.4, 300) - .2, carameloEsc, .2, .42, .05);
+      [[59, 166, 80, 173], [80, 166, 100, 173], [100, 166, 120, 173]].forEach(([a, b, c2, d2]) => peca(a + .2, b, c2 - .2, d2, carameloEsc, .2, .42, .05));
+      peca(59, 294, 76, 300, carameloEsc, .2, .22, .04); peca(114, 173, 120, 190, carameloEsc, .2, .22, .04);
       const alm = (x: number, y: number, c: string, rot: number) => { const a = em(g, rb(.36, .34, .1, M(c, { roughness: .95 }), .05), X(x), .55, Z(y)); a.rotation.set(-.25, rot, 0); };
-      alm(62, 236, '#ece6d6', Math.PI / 2); alm(62, 284, '#7d9a6a', Math.PI / 2); alm(104, 231, '#ece6d6', 0);
-      const manta = em(g, rb(.55, .04, .45, M('#8d96a3', { roughness: 1, map: texTecido('#8d96a3', .2) }), .02), X(68), .44, Z(262)); manta.rotation.y = .5;
-      const mochila = new THREE.Group(); em(mochila, rb(.32, .38, .16, M('#ece4d6', { roughness: 1 }), .06), 0, .19, 0); em(mochila, rb(.24, .03, .17, M('#222'), .01), 0, .38, 0); em(g, mochila, X(106), .4, Z(236));
-      em(g, rb(.16, .02, .05, M('#111'), .01), X(66), .41, Z(272)).rotation.y = .3;
+      alm(62, 182, '#ece6d6', Math.PI / 2); alm(62, 284, '#7d9a6a', Math.PI / 2); alm(104, 177, '#ece6d6', 0);
+      const manta = em(g, rb(.55, .04, .45, M('#8d96a3', { roughness: 1, map: texTecido('#8d96a3', .2) }), .02), X(68), .44, Z(250)); manta.rotation.y = .5;
+      const mochila = new THREE.Group(); em(mochila, rb(.32, .38, .16, M('#ece4d6', { roughness: 1 }), .06), 0, .19, 0); em(mochila, rb(.24, .03, .17, M('#222'), .01), 0, .38, 0); em(g, mochila, X(106), .4, Z(182));
+      em(g, rb(.16, .02, .05, M('#111'), .01), X(66), .41, Z(262)).rotation.y = .3;
       return g;
     },
     'tapete-sala'(w, d) { const g = new THREE.Group(); em(g, rb(w, .015, d, M('#d9c6a4', { map: texTapete('#d4c09d', '#b9a27d'), roughness: 1 }), .005), 0, .008, 0); return g; },
@@ -266,7 +277,6 @@ export function criarCena(el: HTMLElement): Cena {
       em(g, bx(.11, .14, .015, M('#1a1a1a')), -w * .02, .57, -.06); em(g, plano(.09, .12, M('#c9b9a0')), -w * .02, .57, -.052);
       const papai = new THREE.Group(); em(papai, cil(.04, .06, .14, M('#b22')), 0, .07, 0); em(papai, esf(.035, M('#f1d0b5')), 0, .17, 0); em(papai, esf(.03, M('#fff')), 0, .15, .02); em(papai, new THREE.Mesh(new THREE.ConeGeometry(.04, .07, 12), M('#b22')), 0, .22, 0); em(g, papai, w * .1, .5, .03);
       em(g, rb(.08, .06, .08, M('#c9a77a'), .01), -w * .12, .53, .06);
-      em(g, planta(.4, .85, 11), -w * .36, .5, .02);
       const capacete = em(g, esf(.1, M('#3b9ad9', { roughness: .3 }), 16), w * .38, h - .25, -.02); capacete.scale.y = .7;
       return g;
     },
@@ -275,7 +285,7 @@ export function criarCena(el: HTMLElement): Cena {
     box(w, d, h) {
       const g = new THREE.Group(); em(g, bx(w, h, .01, vidro), 0, h / 2, d / 2); em(g, bx(.01, h, d, vidro), -w / 2 + .01, h / 2, 0);
       em(g, bx(w, .03, .04, alu), 0, h, d / 2); em(g, bx(w, .02, .03, alu), 0, .01, d / 2); em(g, bx(.03, h, .03, alu), w / 2 - .02, h / 2, d / 2);
-      em(g, cil(.06, .06, .02, cromo, 20), w * .2, 1.95, -d / 2 + .12); em(g, cil(.008, .008, .14, cromo, 8), w * .2, 2.03, -d / 2 + .1);
+      { const ch = em(g, cil(.08, .08, .03, M('#f2f2f0', { roughness: .3 }), 24), -w / 2 + .14, 2.0, 0); ch.rotation.z = -.5; em(g, deitado(cil(.012, .012, .12, cromo, 8), 'x'), -w / 2 + .06, 2.05, 0); em(g, rb(.06, .12, .04, cromo, .01), -w / 2 + .03, 1.2, .15); }
       const banq = new THREE.Group(); em(banq, rb(.28, .03, .22, M('#3fa7b5'), .01), 0, .3, 0); [-1, 1].forEach(s => em(banq, bx(.02, .3, .2, M('#2a2a2a')), s * .12, .15, 0)); em(g, banq, w * .3, 0, -d * .05);
       const prat = new THREE.Group(); em(prat, rb(.25, .02, .1, M('#fff'), .005), 0, 0, 0); em(prat, cil(.025, .025, .18, M('#f1e3c4'), 10), -.06, .09, 0); em(prat, cil(.02, .02, .15, M('#7a5aa8'), 10), .05, .08, 0); em(g, prat, w / 2 - .14, 1.2, -d / 2 + .06);
       em(g, rb(w * .8, .01, .3, M('#6f7378', { roughness: 1 }), .004), 0, .005, d / 2 + .2);
@@ -302,7 +312,12 @@ export function criarCena(el: HTMLElement): Cena {
     'mesa-pc'(w, d, h) {
       const g = new THREE.Group(); em(g, rb(w, .03, d, preto, .008), 0, h, 0); [-1, 1].forEach(s => { em(g, bx(.05, h, .05, preto), s * (w / 2 - .08), h / 2, -d / 2 + .1); em(g, bx(.06, .03, d - .1, preto), s * (w / 2 - .08), .015, 0); });
       em(g, rb(w * .78, .006, .32, M('#5a1f1f', { roughness: .9 }), .003), 0, h + .018, .05);
-      const mon = em(g, rb(1.0, .42, .03, preto, .01), 0, h + .42, -d / 2 + .1); mon.rotation.x = -.05; em(g, plano(.97, .39, M('#000', { map: texTela('#2b4a77') })), 0, h + .42, -d / 2 + .117);
+      // LG UltraGear 34" curvo (21:9, ~80 × 36 cm, curvatura 1500R)
+      { const r = 1.5, ang = .54, zs = -d / 2 + .12;
+        const tela_ = new THREE.Mesh(new THREE.CylinderGeometry(r, r, .345, 32, 1, true, Math.PI - ang / 2, ang), M('#000', { map: texTela('#2b4a77'), side: THREE.DoubleSide, roughness: .25 }));
+        const moldura = new THREE.Mesh(new THREE.CylinderGeometry(r + .02, r + .02, .37, 32, 1, true, Math.PI - (ang + .015) / 2, ang + .015), M('#151517', { side: THREE.DoubleSide, roughness: .5 }));
+        [tela_, moldura].forEach(o => em(g, o, 0, h + .43, zs + r));
+        em(g, rb(.16, .03, .02, M('#c8102e'), .01), 0, h + .245, zs - .025); }
       em(g, bx(.06, .2, .04, preto), 0, h + .12, -d / 2 + .08); em(g, bx(.25, .01, .18, preto), 0, h + .02, -d / 2 + .1); em(g, rb(.12, .03, .04, preto, .01), 0, h + .65, -d / 2 + .1);
       const nb = new THREE.Group(); em(nb, rb(.38, .02, .26, M('#3a3d42'), .01), 0, .01, 0); const tl = em(nb, rb(.38, .25, .012, M('#3a3d42'), .006), 0, .13, -.13); tl.rotation.x = -.25; em(nb, plano(.34, .21, M('#000', { map: texTela('#1f2937') })), 0, .13, -.123).rotation.x = -.25;
       em(nb, bx(.3, .01, .2, M('#e65a2f')), 0, -.02, .02); em(g, nb, -w * .32, h + .1, -d / 2 + .25);
@@ -378,14 +393,14 @@ export function criarCena(el: HTMLElement): Cena {
   const chao = new THREE.Mesh(new THREE.CircleGeometry(14, 48).rotateX(-Math.PI / 2), new THREE.ShadowMaterial({ opacity: .12 })); chao.position.set(CENTRO.x, -.18, CENTRO.z); chao.receiveShadow = true; scene.add(chao);
 
   const paredeMat = M('#fbfaf7', { roughness: .92 }), topoMat = M('#6e6c68', { roughness: .9 }), rodapeMat = M('#ffffff', { roughness: .4 });
-  type Parede = { corpo: THREE.Mesh; topo: THREE.Mesh; base: number; frente: boolean };
+  type Parede = { corpo: THREE.Mesh; topo: THREE.Mesh; base: number; frente: boolean; comTopo: boolean };
   const segmento = (a: [number, number], b: [number, number], h: number, base = 0, material: THREE.Material = paredeMat, comTopo = true): Parede => {
     const x1 = mx(a[0]), z1 = mz(a[1]), x2 = mx(b[0]), z2 = mz(b[1]);
     const len = Math.hypot(x2 - x1, z2 - z1) + ESP, ang = -Math.atan2(z2 - z1, x2 - x1);
     const corpo = new THREE.Mesh(new THREE.BoxGeometry(len, 1, ESP), material); corpo.rotation.y = ang; corpo.position.set((x1 + x2) / 2, 0, (z1 + z2) / 2);
     corpo.castShadow = corpo.receiveShadow = true; scene.add(corpo);
     const topo = new THREE.Mesh(new THREE.BoxGeometry(len + .002, .012, ESP + .002), topoMat); topo.rotation.y = ang; topo.position.copy(corpo.position); topo.visible = comTopo; scene.add(topo);
-    const p: Parede = { corpo, topo, base, frente: a[1] >= 340 && b[1] >= 340 }; ajustar(p, h); return p;
+    const p: Parede = { corpo, topo, base, frente: a[1] >= 340 && b[1] >= 340, comTopo }; ajustar(p, h); return p;
   };
   const ajustar = (p: Parede, h: number) => { p.corpo.scale.y = h; p.corpo.position.y = p.base + h / 2; p.topo.position.y = p.base + h + .006; };
   const cheias: Parede[] = [];
@@ -395,17 +410,17 @@ export function criarCena(el: HTMLElement): Cena {
   } });
   { const [bx0, by0, bw0, bh0] = BLOCO; const p = segmento([bx0 + bw0 / 2, by0], [bx0 + bw0 / 2, by0 + bh0], ALTA); p.corpo.geometry = new THREE.BoxGeometry(m(bh0) + ESP, 1, m(bw0)); p.topo.geometry = new THREE.BoxGeometry(m(bh0) + ESP, .012, m(bw0)); cheias.push(p); }
   const sobre: Parede[] = [], vidros: THREE.Mesh[] = [];
-  const caixilho = M('#e9eaea', { metalness: .4, roughness: .35 });
+  const caixilho = M('#e9eaea', { metalness: .4, roughness: .35 }); const vidroJ = vidro.clone(); const cortaveis: THREE.Material[] = [vidroJ, caixilho];
   JANELAS.forEach(([a, b]) => {
     const pe = segmento(a, b, 1.0); pe.frente = false; sobre.push(segmento(a, b, ALTA - 2.1, 2.1));
-    const v = segmento(a, b, 1.1, 1.0, vidro, false); v.corpo.scale.z = .25; vidros.push(v.corpo);
-    [1.0, 2.07].forEach(y => { const c = segmento(a, b, .03, y, caixilho, false); c.corpo.scale.z = .5; vidros.push(c.corpo); });
+    const v = segmento(a, b, 1.1, 1.0, vidroJ, false); v.corpo.scale.z = .25;
+    [1.0, 2.07].forEach(y => { const c = segmento(a, b, .03, y, caixilho, false); c.corpo.scale.z = .5; });
     const meio: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]; const vert = a[0] === b[0];
-    const c = segmento(vert ? [meio[0], meio[1] - .4] : [meio[0] - .4, meio[1]], vert ? [meio[0], meio[1] + .4] : [meio[0] + .4, meio[1]], 1.07, 1.0, caixilho, false); vidros.push(c.corpo);
+    segmento(vert ? [meio[0], meio[1] - .4] : [meio[0] - .4, meio[1]], vert ? [meio[0], meio[1] + .4] : [meio[0] + .4, meio[1]], 1.07, 1.0, caixilho, false);
   });
-  { const v = segmento(PORTA_VIDRO[0], PORTA_VIDRO[1], 2.1, 0, vidro, false); v.corpo.scale.z = .25; vidros.push(v.corpo); sobre.push(segmento(PORTA_VIDRO[0], PORTA_VIDRO[1], ALTA - 2.1, 2.1));
-    const t = segmento(PORTA_VIDRO[0], PORTA_VIDRO[1], .04, 2.07, caixilho, false); vidros.push(t.corpo);
-    const meio = (PORTA_VIDRO[0][0] + PORTA_VIDRO[1][0]) / 2; vidros.push(segmento([meio, 302.5], [meio, 305.5], 2.1, 0, caixilho, false).corpo); }
+  { const v = segmento(PORTA_VIDRO[0], PORTA_VIDRO[1], 2.1, 0, vidroJ, false); v.corpo.scale.z = .25; sobre.push(segmento(PORTA_VIDRO[0], PORTA_VIDRO[1], ALTA - 2.1, 2.1));
+    segmento(PORTA_VIDRO[0], PORTA_VIDRO[1], .04, 2.07, caixilho, false);
+    const meio = (PORTA_VIDRO[0][0] + PORTA_VIDRO[1][0]) / 2; segmento([meio, 302.5], [meio, 305.5], 2.1, 0, caixilho, false); }
   { const [a, b] = GUARDA_CORPO; const n = Math.round((b[0] - a[0]) / 3.2); const gc = M('#f2f0ea', { roughness: .5 });
     for (let i = 0; i <= n; i++) { const bar = cil(.01, .01, 1.05, gc, 6); bar.position.set(mx(a[0] + i * (b[0] - a[0]) / n), .525, mz(a[1]) - .02); bar.castShadow = true; scene.add(bar); }
     segmento(a, b, .05, 1.05, gc, false); const tela_ = segmento(a, b, 1.3, 1.1, M('#ffffff', { transparent: true, opacity: .1, side: THREE.DoubleSide }), false); tela_.corpo.scale.z = .1; sobre.push(tela_);
@@ -413,20 +428,20 @@ export function criarCena(el: HTMLElement): Cena {
   // revestimento hexagonal da cozinha (atrás do fogão)
   { const t = texHexagonal(); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(3, 1); const r = plano(1.9, .62, M('#fff', { map: t, roughness: .4 })); r.position.set(mx(110), 1.22, mz(20) + ESP / 2 + .005); scene.add(r); }
   const folha = (hx: number, hz: number, larg: number, ang: number, cor = '#f7f6f2') => {
-    const g = new THREE.Group(); em(g, rb(larg, 2.1, .035, M(cor, { roughness: .5 }), .005), larg / 2, 1.05, 0);
+    const g = new THREE.Group(); const mf = M(cor, { roughness: .5 }); cortaveis.push(mf); em(g, rb(larg, 2.1, .035, mf, .005), larg / 2, 1.05, 0);
     em(g, deitado(cil(.012, .012, .12, cromo, 8), 'x'), larg - .08, 1.0, .03); em(g, deitado(cil(.012, .012, .12, cromo, 8), 'x'), larg - .08, 1.0, -.03);
     g.position.set(hx, 0, hz); g.rotation.y = ang; sombra(g); scene.add(g); return g;
   };
-  const portasAbertas = [folha(mx(50), mz(184), .8, -1.3), folha(mx(190), mz(199), .55, 1.9), folha(mx(221), mz(230), .7, 1.0), folha(mx(200), mz(232), .7, -1.1)];
+  const portasAbertas = [folha(mx(50), mz(160), .85, 1.2, '#efe9df'), folha(mx(216), mz(199), .55, 2.0), folha(mx(221), mz(230), .7, 1.0), folha(mx(200), mz(232), .7, -1.1)];
   const extras: THREE.Object3D[] = [];
-  const cortQuarto = cortina(1.8, 2.3, '#a8a9ab'); cortQuarto.position.set(mx(270), 0, mz(342)); extras.push(cortQuarto);
-  const cortEsc = cortina(1.4, 2.3, '#f3f1ec'); cortEsc.position.set(mx(278), 0, mz(114)); extras.push(cortEsc);
+  const cortQuarto = cortina(1.8, 2.3, '#a8a9ab'); cortQuarto.traverse(c => { const me = c as THREE.Mesh; if (me.isMesh) cortaveis.push(me.material as THREE.Material); }); cortQuarto.position.set(mx(270), 0, mz(342)); extras.push(cortQuarto);
+  const cortEsc = cortina(1.4, 2.3, '#f3f1ec'); cortEsc.traverse(c => { const me = c as THREE.Mesh; if (me.isMesh) cortaveis.push(me.material as THREE.Material); }); cortEsc.position.set(mx(278), 0, mz(114)); extras.push(cortEsc);
   { const g = new THREE.Group(); const t = rb(.8, .02, .22, M('#2e2a26'), .01); t.position.y = .42; t.rotation.z = 1.2; g.add(t); [-1, 1].forEach(s => { const r = esf(.03, M('#d6a23a'), 8); r.position.set(-.05 + s * .02, .06 + (s + 1) * .32, .08); g.add(r); }); g.position.set(mx(322), 0, mz(160)); extras.push(g); }
   { const g = new THREE.Group(); const c = cil(.17, .14, .25, M('#ef8a9c'), 18); c.position.y = .125; c.scale.x = 1.6; g.add(c); const cesto = cil(.1, .1, .1, M('#7a1f3d'), 16); cesto.position.set(.12, .2, 0); g.add(cesto); g.position.set(mx(150), 0, mz(208)); extras.push(g); }
   for (let i = 0; i < 6; i++) { const pl = planta(.14, .32 + (i % 3) * .08, 4); pl.position.set(mx(56 + i * 8), 0, mz(342.5)); extras.push(pl); }
   { const g = new THREE.Group(); const mop = cil(.012, .012, 1.2, M('#d64a6a'), 6); mop.position.y = .6; mop.rotation.z = .15; g.add(mop); const cab = cil(.12, .14, .05, M('#c9c9c9', { roughness: 1 }), 14); cab.position.y = .03; g.add(cab); g.position.set(mx(178), 0, mz(310)); extras.push(g); }
   { const g = new THREE.Group(); const fr = cil(.06, .08, .22, M('#78c850', { transparent: true, opacity: .8 }), 14); fr.position.y = .11; g.add(fr); g.position.set(mx(178), 0, mz(322)); extras.push(g); }
-  { const g = new THREE.Group(); const prat = bx(.25, .02, .1, M('#fff')); prat.position.set(0, 1.35, 0); g.add(prat); const fr = cil(.03, .03, .16, M('#8d6ad1'), 10); fr.position.set(.05, 1.44, 0); g.add(fr); const chave = cil(.003, .003, .2, M('#2a7a3a'), 4); chave.position.set(-.05, 1.2, 0); g.add(chave); g.position.set(mx(51) + .07, 0, mz(230)); g.rotation.y = Math.PI / 2; extras.push(g); }
+  { const g = new THREE.Group(); const prat = bx(.25, .02, .1, M('#fff')); prat.position.set(0, 1.35, 0); g.add(prat); const fr = cil(.03, .03, .16, M('#8d6ad1'), 10); fr.position.set(.05, 1.44, 0); g.add(fr); const chave = cil(.003, .003, .2, M('#2a7a3a'), 4); chave.position.set(-.05, 1.2, 0); g.add(chave); g.position.set(mx(51) + .07, 0, mz(120)); g.rotation.y = Math.PI / 2; extras.push(g); }
   { const g = new THREE.Group(); const lu = plano(1.2, .9, M('#fff', { transparent: true, opacity: 0 })); g.add(lu); extras.push(g); }
   extras.forEach(e => { sombra(e); scene.add(e); });
 
@@ -441,19 +456,22 @@ export function criarCena(el: HTMLElement): Cena {
     g.traverse(c => { const me = c as THREE.Mesh; if (!me.isMesh) return; me.userData.movel = f.id; me.material = (me.material as THREE.Material).clone(); porId.set(f.id, [...(porId.get(f.id) || []), me]); });
     scene.add(g); alvos.push(g);
   });
+  porId.get('cortina-sala')?.forEach(me => cortaveis.push(me.material as THREE.Material));
   // luzes quentes dos abajures e da sala
 
   const grupoF = new THREE.Group(); scene.add(grupoF);
   const fantMat = new THREE.MeshStandardMaterial({ color: '#e0962e', transparent: true, opacity: 0.38 });
   const borda = new THREE.LineBasicMaterial({ color: '#c47a12' });
 
+  const corte = new THREE.Plane(new THREE.Vector3(0, -1, 0), BAIXA + .02);
   let altas = true, planta2d = false, onMudou: () => void = () => {};
   const aplicarParedes = () => {
     const h = planta2d ? ALTA : altas ? ALTA : BAIXA;
     cheias.forEach(p => ajustar(p, !planta2d && altas && p.frente ? CORTE : h));
-    sobre.forEach(p => p.corpo.visible = h === ALTA && !planta2d);
-    vidros.forEach(v => v.visible = h === ALTA || v.position.y < BAIXA);
-    portasAbertas.forEach(p => p.visible = !planta2d); [cortQuarto, cortEsc].forEach(c => c.visible = h === ALTA && !planta2d);
+    sobre.forEach(p => { p.corpo.visible = h === ALTA && !planta2d; p.topo.visible = p.comTopo && p.corpo.visible; });
+    const planos = !planta2d && !altas ? [corte] : [];
+    cortaveis.forEach(mt => { mt.clippingPlanes = planos; mt.needsUpdate = true; });
+    portasAbertas.forEach(p => p.visible = !planta2d); [cortQuarto, cortEsc].forEach(c => c.visible = !planta2d);
   };
 
   let alvo: { t: THREE.Vector3; p: THREE.Vector3 } | null = null;
