@@ -3,6 +3,7 @@ import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, S
 import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
+import { corCat } from './cores';
 import { api } from './api';
 import { Radar, RefreshCw } from 'lucide-react';
 
@@ -34,11 +35,11 @@ async function puxarRadar(manual: boolean, onReload?: () => void) {
 
 function Cartao({ i, onClick }: { i: ItemCasa; onClick: () => void }) {
   const m = melhorCotacao(i), f = frenteMeta(i);
-  return <button className={'casa-card' + (i.status === 'temos' ? ' temos' : '')} onClick={onClick}>
+  return <button className={'casa-card' + (i.status === 'temos' ? ' temos' : '')} style={{ '--cat': corCat(i.cat) } as any} onClick={onClick}>
     <Capa item={i} />
-    <span className="casa-info"><b>{i.name}</b><small>{i.cat}{i.comodo ? ' · ' + i.comodo : ''}</small>
+    <span className="casa-info"><b>{i.name}</b><small className="casa-cat">{i.cat}{i.comodo ? ' · ' + i.comodo : ''}</small>
       <span className="casa-linha"><span className={'casa-status ' + i.status}>{LABEL[i.status]}</span>
-        {i.status !== 'temos' && i.prioridade === 'alta' && <span className="casa-prio">prioridade</span>}
+        {i.status !== 'temos' && i.prioridade === 'alta' && <span className="casa-prio" title="Prioridade alta">★</span>}
         {i.status === 'temos' ? (i.preco ? <em>{money(i.preco)}</em> : null) : m ? <em>a partir de {money(m.preco)}</em> : i.preco ? <em>≈ {money(i.preco)}</em> : null}
         {i.fotos?.length > 1 && <small>{i.fotos.length} fotos</small>}</span>
       {f && i.status !== 'temos' && <small className={'casa-meta ' + (f.diferenca <= 0 ? 'ok' : '')}>{f.diferenca <= 0 ? 'Dentro da meta de ' + money(f.meta) : 'Faltam ' + money(f.diferenca) + ' p/ meta de ' + money(f.meta)}</small>}
@@ -69,7 +70,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
     {lista.length ? (status === 'todos' ? [['Queremos comprar', lista.filter(i => i.status !== 'temos')], ['Já temos', lista.filter(i => i.status === 'temos')]] as [string, ItemCasa[]][] : [['', lista]] as [string, ItemCasa[]][]).filter(([, l]) => l.length).map(([titulo, l]) => <section key={titulo || 'lista'} className="casa-secao">
       {titulo && <h3 className="casa-secao-titulo">{titulo}<span>{l.length}</span></h3>}
       <div className="casa-grid">{l.map(i => <Cartao key={i.id} i={i} onClick={() => setAberto(i)} />)}</div></section>)
-      : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Cadastre o que vocês já têm (com foto) e o que estão cotando, como o robô aspirador.'}</p></section>}
+      : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Comece pelo que mais importa: algo que vocês querem comprar (como o robô aspirador) ou os eletrônicos que já têm, com foto e garantia.'}</p>{!itens.length && <div className="casa-novos centro"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={17} /> Algo que queremos</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Camera size={17} /> Algo que já temos</button></div>}</section>}
     {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); }}
       onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}

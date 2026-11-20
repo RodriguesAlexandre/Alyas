@@ -265,3 +265,34 @@ html.escuro .casa-radar{background:#2e261c;color:#e8c9a0}html.escuro .casa-radar
 .casa-meta{display:block;margin-top:5px;font-weight:700;color:#b0583a!important}.casa-meta.ok{color:#3f7a57!important}
 @media(max-width:800px){.casa-novos{width:100%}.casa-novos button{flex:1;padding:12px 10px;font-size:12px}}
 html.escuro .casa-secao-titulo span{background:#272824;color:#a3a299}html.escuro .casa-prio{background:#3a2a20;color:#f0b48f}html.escuro .casa-meta{color:#f0b48f!important}html.escuro .casa-meta.ok{color:#a9cc8f!important}
+/* ===== Resumo do dia (Visão geral) ===== */
+.resumo{padding-bottom:18px}.resumo-topo h2{font-size:28px;margin:4px 0 0}.resumo .eyebrow{letter-spacing:1.4px}
+.resumo-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0 4px}.resumo-tiles button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:#f6f7f0;border-radius:12px;padding:12px 13px;text-align:left;color:#55664a}.resumo-tiles b{font:700 26px Manrope;letter-spacing:-.6px;color:var(--ink)}.resumo-tiles small{font-size:11px;color:var(--muted)}
+.resumo-tiles .alerta{background:#fbefe7;color:#b0583a}.resumo-tiles .repor{background:#eef3e6;color:#3f7a57}
+.resumo-linha{display:flex;align-items:center;gap:10px;justify-content:space-between;background:#fbefe7;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:12px;color:#7a4a32}.resumo-linha .secondary{padding:8px 11px;font-size:11px;white-space:nowrap;display:inline-flex;gap:5px;align-items:center}
+.resumo-repor{margin-top:16px}.resumo-repor h3{display:flex;align-items:center;gap:8px;font-size:15px;margin:0 0 4px;flex-wrap:wrap}.resumo-repor h3 small{font-weight:400;font-size:11px;color:var(--muted)}.resumo-repor .icon-btn.add{background:#eef3e6;color:#3f7a57}.resumo-todos{margin-top:10px;width:100%}
+.resumo-radar{display:flex;align-items:center;gap:10px;width:100%;margin-top:14px;background:#f9f3e8;border-radius:10px;padding:11px 13px;text-align:left;color:#8a6d47}.resumo-radar span{flex:1}.resumo-radar b{display:block;font-size:13px;color:#5a4a36}.resumo-radar small{font-size:11px}
+html.escuro .resumo-tiles button{background:#272824;color:#a3a299}html.escuro .resumo-tiles .alerta{background:#3a2a20;color:#f0b48f}html.escuro .resumo-tiles .repor{background:#253023;color:#a9cc8f}html.escuro .resumo-linha{background:#3a2a20;color:#f0c9ad}html.escuro .resumo-radar{background:#2e261c;color:#e8c9a0}html.escuro .resumo-radar b{color:#f2dcc0}html.escuro .resumo-repor .icon-btn.add{background:#253023;color:#a9cc8f}
+/* ===== Cores por categoria ===== */
+.category>h3::before{content:'';display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--cat,#b9b29f);margin-right:8px;vertical-align:1px}
+.category .product-icon{background:color-mix(in srgb,var(--cat,#b9b29f) 16%,#fff)}html.escuro .category .product-icon{background:color-mix(in srgb,var(--cat,#b9b29f) 22%,#1e1f1c)}
+.casa-cat::before{content:'';display:inline-block;width:8px;height:8px;border-radius:3px;background:var(--cat,#b9b29f);margin-right:6px;vertical-align:0}
+.casa-card .casa-foto.capa.vazia{background:color-mix(in srgb,var(--cat,#b9b29f) 14%,#f6f4ec)}html.escuro .casa-card .casa-foto.capa.vazia{background:color-mix(in srgb,var(--cat,#b9b29f) 20%,#1e1f1c)}
+/* ===== Telas vazias ===== */
+.empty-dica{display:block;margin:14px 0 8px;color:var(--muted)}.empty-chips{justify-content:center;flex-wrap:wrap}.empty-chips button{display:inline-flex;gap:4px;align-items:center}.casa-novos.centro{justify-content:center;margin-top:14px}
+/* ===== Navegação: rótulos curtos no celular ===== */
+.nav-short{display:none}
+@media(max-width:800px){.nav-long{display:none}.nav-short{display:inline}nav button{font-size:9.5px}}
+/* ===== Botão ✨ menor no celular ===== */
+@media(max-width:800px){.ai-fab{width:48px!important;height:48px!important;right:14px!important;bottom:calc(84px + env(safe-area-inset-bottom))!important;border-width:2px!important}.ai-fab svg{width:20px;height:20px}}
+/* ===== Cards da Casa compactos no celular ===== */
+.casa-prio{font-size:12px;padding:2px 7px;letter-spacing:0}
+@media(max-width:800px){
+ .casa-grid{grid-template-columns:1fr;gap:8px}
+ .casa-card{flex-direction:row;align-items:stretch;border-radius:14px}
+ .casa-card .casa-foto.capa,.casa-card.temos .casa-foto.capa{width:88px;min-height:88px;aspect-ratio:auto;flex-shrink:0}
+ .casa-info{padding:10px 12px;gap:2px;min-width:0;flex:1}.casa-info b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .casa-linha{flex-wrap:nowrap;margin-top:4px;gap:6px;overflow:hidden}.casa-linha em{white-space:nowrap;font-size:12px}.casa-linha>small{display:none}
+ .casa-status{font-size:9px;padding:3px 7px}.casa-meta,.casa-radar-mini{font-size:10.5px!important;margin-top:3px}
+ .resumo-topo h2{font-size:24px}.resumo-tiles b{font-size:22px}.resumo-tiles button{padding:10px}
+}
