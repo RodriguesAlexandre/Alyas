@@ -12,6 +12,7 @@ export type ItemCasa = {
   comodo?: string; marca?: string; modelo?: string; preco?: number | null; dataCompra?: string; loja?: string;
   note?: string; fotos: string[]; cotacoes: Cotacao[]; criado: string; por?: string;
   radar?: { data: string; decisao: string; titulo?: string; link?: string };
+  medidas?: { l: number; p: number; a: number };
   prioridade?: 'alta' | 'media' | 'baixa'; meta?: number | null;
 };
 const n = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

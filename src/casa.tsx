@@ -5,7 +5,8 @@ import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
 import { corCat } from './cores';
 import { api } from './api';
-import { Radar, RefreshCw } from 'lucide-react';
+import { Radar, RefreshCw, Box } from 'lucide-react';
+import Casa3D from './casa3d';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : NaN; };
@@ -51,7 +52,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
   useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
   const itens: ItemCasa[] = data.casa || [];
   const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
-  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>('');
+  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>(''), [tresD, setTresD] = useState(false);
   const r = resumoCasa(itens);
   const lista = filtrarCasa(itens, status, cat, busca);
   const gravar = async (lst: ItemCasa[], msg: string) => save({ ...data, casa: lst }, msg);
@@ -60,6 +61,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
     <section className="card casa-topo">
       <div className="section-title"><div><span className="eyebrow">ITENS DA CASA</span><h2>Nossa casa, item por item</h2><p className="muted">O que já temos, o que estamos cotando e o que queremos comprar, com fotos.</p></div>
         <div className="casa-novos"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={18} /> Queremos comprar</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Plus size={18} /> Já temos</button></div></div>
+      <button className="casa-3d-btn" onClick={() => setTresD(true)}><span><Box size={20} /></span><span><b>Ver a casa em 3D</b><small>A maquete do apê com os nossos móveis e cada item no cômodo dele</small></span></button>
       <div className="casa-kpis duas">
         <button className={status === 'quero' ? 'on' : ''} onClick={() => setStatus(status === 'quero' ? 'todos' : 'quero')}><b>{r.quero}</b><small>queremos comprar{r.cotando ? ' · ' + r.cotando + ' em cotação' : ''}</small>{r.previsto > 0 && <em>≈ {money(r.previsto)} pelas melhores cotações</em>}</button>
         <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>já temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)} em itens</em>}</button>
@@ -71,6 +73,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
       {titulo && <h3 className="casa-secao-titulo">{titulo}<span>{l.length}</span></h3>}
       <div className="casa-grid">{l.map(i => <Cartao key={i.id} i={i} onClick={() => setAberto(i)} />)}</div></section>)
       : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Comece pelo que mais importa: algo que vocês querem comprar (como o robô aspirador) ou os eletrônicos que já têm, com foto e garantia.'}</p>{!itens.length && <div className="casa-novos centro"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={17} /> Algo que queremos</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Camera size={17} /> Algo que já temos</button></div>}</section>}
+    {tresD && <Casa3D itens={itens} onFechar={() => setTresD(false)} onAbrir={i => setAberto(i)} />}
     {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); }}
       onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
@@ -119,6 +122,8 @@ function Detalhe({ inicial, statusNovo, busy, onClose, onSave, onDelete, onReloa
     const prox: ItemCasa = { ...it, name: String(f.get('name')).trim().slice(0, 80), cat: String(f.get('cat')) as any, status: String(f.get('status')) as any,
       comodo: String(f.get('comodo') || '') || undefined, marca: String(f.get('marca') || '').trim() || undefined, modelo: String(f.get('modelo') || '').trim() || undefined,
       preco: preco ? (num(preco) >= 0 ? num(preco) : null) : null, prioridade: (String(f.get('prioridade') || 'media') as any), meta: String(f.get('meta') || '').trim() ? (num(String(f.get('meta'))) > 0 ? num(String(f.get('meta'))) : null) : null, loja: String(f.get('loja') || '').trim() || undefined, dataCompra: String(f.get('dataCompra') || '') || undefined, note: String(f.get('note') || '').trim().slice(0, 1000) || undefined };
+    const md = ['ml', 'mp', 'ma'].map(k => Math.round(num(String(f.get(k) || '').trim() || 'x')));
+    prox.medidas = md.every(v => v >= 1 && v <= 1000) ? { l: md[0], p: md[1], a: md[2] } : undefined;
     if (!prox.name) return;
     if (await onSave(prox, salvoNoApp ? 'Item atualizado' : prox.name + ' cadastrado')) { setIt(prox); setEditando(false); }
   }
@@ -151,6 +156,7 @@ function Detalhe({ inicial, statusNovo, busy, onClose, onSave, onDelete, onReloa
         <label>Cômodo<select name="comodo" defaultValue={it.comodo || ''}><option value="">—</option>{COMODOS.map(c => <option key={c}>{c}</option>)}</select></label>
         <label>Marca<input name="marca" maxLength={60} defaultValue={it.marca || ''} /></label>
         <label>Modelo<input name="modelo" maxLength={60} defaultValue={it.modelo || ''} /></label>
+        <label className="casa-medidas">Medidas em cm (largura × profundidade × altura)<span><input name="ml" inputMode="numeric" placeholder="L" defaultValue={it.medidas?.l || ''} /><input name="mp" inputMode="numeric" placeholder="P" defaultValue={it.medidas?.p || ''} /><input name="ma" inputMode="numeric" placeholder="A" defaultValue={it.medidas?.a || ''} /></span><small>Com as medidas, o item aparece no tamanho real na casa em 3D.</small></label>
         <label>Valor (pago ou estimado)<input name="preco" inputMode="decimal" defaultValue={it.preco != null ? String(it.preco).replace('.', ',') : ''} placeholder="0,00" /></label>
         <label>Loja<input name="loja" maxLength={80} defaultValue={it.loja || ''} /></label>
         <label>Data da compra<input name="dataCompra" type="date" defaultValue={it.dataCompra || ''} /></label>
