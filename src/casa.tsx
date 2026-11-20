@@ -7,6 +7,8 @@ import { corCat } from './cores';
 import { api } from './api';
 import { Radar, RefreshCw, Box } from 'lucide-react';
 import Casa3D from './casa3d';
+import { ondeAviso, rotuloTipo, type Aviso } from './avisos';
+import { Wrench, Check as Ok } from 'lucide-react';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : NaN; };
@@ -52,16 +54,19 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
   useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
   const itens: ItemCasa[] = data.casa || [];
   const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
-  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>(''), [tresD, setTresD] = useState(false);
+  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>(''), [tresD, setTresD] = useState<false | { movel?: string; sala?: string } | null>(false), [preset, setPreset] = useState<{ item: Partial<ItemCasa>; aviso?: Aviso } | null>(null);
   const r = resumoCasa(itens);
   const lista = filtrarCasa(itens, status, cat, busca);
-  const gravar = async (lst: ItemCasa[], msg: string) => save({ ...data, casa: lst }, msg);
+  const avisos: Aviso[] = data.avisos || [];
+  const gravar = async (lst: ItemCasa[], msg: string) => save({ ...data, casa: lst, ...(preset?.aviso ? { avisos: avisos.map(a => a.id === preset.aviso!.id ? { ...a, feito: new Date().toISOString() } : a) } : {}) }, msg);
+  const salvarAvisos = (l: Aviso[], msg: string) => save({ ...data, avisos: l }, msg);
+  const abertos = avisos.filter(a => !a.feito);
 
   return <>
     <section className="card casa-topo">
       <div className="section-title"><div><span className="eyebrow">ITENS DA CASA</span><h2>Nossa casa, item por item</h2><p className="muted">O que já temos, o que estamos cotando e o que queremos comprar, com fotos.</p></div>
         <div className="casa-novos"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={18} /> Queremos comprar</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Plus size={18} /> Já temos</button></div></div>
-      <button className="casa-3d-btn" onClick={() => setTresD(true)}><span><Box size={20} /></span><span><b>Ver a casa em 3D</b><small>A maquete do apê com os nossos móveis e cada item no cômodo dele</small></span></button>
+      <button className="casa-3d-btn" onClick={() => setTresD(null)}><span><Box size={20} /></span><span><b>Ver a casa em 3D</b><small>Maquete e planta do apê: toque nos objetos para ver propriedades e anotar avisos</small></span></button>
       <div className="casa-kpis duas">
         <button className={status === 'quero' ? 'on' : ''} onClick={() => setStatus(status === 'quero' ? 'todos' : 'quero')}><b>{r.quero}</b><small>queremos comprar{r.cotando ? ' · ' + r.cotando + ' em cotação' : ''}</small>{r.previsto > 0 && <em>≈ {money(r.previsto)} pelas melhores cotações</em>}</button>
         <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>já temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)} em itens</em>}</button>
@@ -69,19 +74,23 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
       <label className="search casa-busca"><Search size={17} /><input aria-label="Buscar item da casa" placeholder="Buscar: aspirador, pratos, cozinha…" value={busca} onChange={e => setBusca(e.target.value)} /></label>
       <div className="chips casa-cats">{['Todas', ...CATS_CASA].map(c => <button key={c} className={cat === c ? 'selected' : ''} onClick={() => setCat(c)}>{c}</button>)}</div>
     </section>
+    {abertos.length > 0 && <section className="card casa-avisos"><div className="section-title"><div><span className="eyebrow">AVISOS DA CASA</span><h2>{abertos.length} {abertos.length > 1 ? 'coisas para resolver' : 'coisa para resolver'}</h2></div></div>
+      <ul>{abertos.map(a => <li key={a.id}><button className="check" aria-label="Marcar como resolvido" disabled={busy} onClick={() => salvarAvisos(avisos.map(x => x.id === a.id ? { ...x, feito: new Date().toISOString() } : x), 'Resolvido ✓')}><Ok size={15} /></button>
+        <button className="casa-aviso-txt" onClick={() => setTresD(a.movel ? { movel: a.movel } : { sala: a.sala })}><b>{a.texto}</b><small><span className={'tag ' + a.tipo}>{rotuloTipo(a.tipo)}</span> {ondeAviso(a)} · ver no 3D</small></button></li>)}</ul></section>}
     {lista.length ? (status === 'todos' ? [['Queremos comprar', lista.filter(i => i.status !== 'temos')], ['Já temos', lista.filter(i => i.status === 'temos')]] as [string, ItemCasa[]][] : [['', lista]] as [string, ItemCasa[]][]).filter(([, l]) => l.length).map(([titulo, l]) => <section key={titulo || 'lista'} className="casa-secao">
       {titulo && <h3 className="casa-secao-titulo">{titulo}<span>{l.length}</span></h3>}
       <div className="casa-grid">{l.map(i => <Cartao key={i.id} i={i} onClick={() => setAberto(i)} />)}</div></section>)
       : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Comece pelo que mais importa: algo que vocês querem comprar (como o robô aspirador) ou os eletrônicos que já têm, com foto e garantia.'}</p>{!itens.length && <div className="casa-novos centro"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={17} /> Algo que queremos</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Camera size={17} /> Algo que já temos</button></div>}</section>}
-    {tresD && <Casa3D itens={itens} onFechar={() => setTresD(false)} onAbrir={i => setAberto(i)} />}
-    {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); }}
-      onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setAberto(it); } return ok; }}
+    {tresD !== false && <Casa3D itens={itens} avisos={avisos} inicial={tresD} onFechar={() => setTresD(false)} onAbrir={i => setAberto(i)} onSalvarAvisos={salvarAvisos}
+      onNovoItem={(comodo, nome, aviso, movel) => setPreset({ item: { comodo, name: nome || '', movel, status: aviso || !movel ? 'queremos' : 'temos', cat: aviso?.texto.match(/planta|jiboia/i) || /planta|quadro|tapete|cortina|sofá|mesa|cadeira|cama|guarda|estante|criado|puff/i.test(nome || '') ? 'Móveis e decoração' : /geladeira|fogão|micro|máquina|tv/i.test(nome || '') ? 'Eletroeletrônicos' : 'Utensílios' }, aviso })} />}
+    {(novo || aberto || preset) && <Detalhe key={aberto?.id || (preset ? 'preset' : 'novo')} inicial={aberto} preset={preset?.item} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); setPreset(null); }}
+      onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setPreset(null); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
   </>;
 }
 
-function Detalhe({ inicial, statusNovo, busy, onClose, onSave, onDelete, onReload }: { inicial: ItemCasa | null; statusNovo: 'temos' | 'queremos'; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
-  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios', status: statusNovo, prioridade: statusNovo === 'queremos' ? 'media' : undefined, fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined };
+function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete, onReload }: { inicial: ItemCasa | null; preset?: Partial<ItemCasa>; statusNovo: 'temos' | 'queremos'; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
+  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios', status: statusNovo, prioridade: statusNovo === 'queremos' ? 'media' : undefined, fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined, ...(inicial ? {} : preset || {}) } as ItemCasa;
   const [it, setIt] = useState<ItemCasa>(base);
   const [editando, setEditando] = useState(!inicial);
   const [enviando, setEnviando] = useState(0), [erro, setErro] = useState(''), [ver, setVer] = useState(''), [apagar, setApagar] = useState(false);
