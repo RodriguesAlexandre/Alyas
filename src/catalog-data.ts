@@ -1,4 +1,4 @@
-export type Product={id:string,name:string,cat:string,unit:string,brand:string,note:string,favorite:boolean,aliases?:string[],supply?:'unknown'|'ok'|'low'|'out'};
+export type Product={id:string,name:string,cat:string,unit:string,brand:string,note:string,favorite:boolean,aliases?:string[],supply?:'unknown'|'ok'|'low'|'out',foto?:string};
 export const catalogCategories=['Hortifruti','Proteínas','Laticínios','Mercearia','Bebidas','Limpeza','Higiene','Utilidades','Outros'];
 const groups:Record<string,string[]>={
 Hortifruti:['Tomate-cereja','Tomate','Cebola','Cebolinha','Cebola roxa','Pimentão','Salsa','Brócolis','Couve','Alface','Alho','Mamão','Fruta','Salada','Batata'],

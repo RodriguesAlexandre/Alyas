@@ -1,3 +1,6 @@
+import { useEffect, useState } from 'react';
+import { fotoDoProduto } from './fotos-produtos';
+import { carregarFoto } from './fotos';
 // Ícones de produtos: embalagens desenhadas (lata, vidro, pacote, garrafa…) para o que se compra embalado
 // e ilustrações 3D (Fluent Emoji, licença MIT) para frutas, verduras, carnes etc.
 const n = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -134,7 +137,20 @@ export function iconeDe(nome: string, cat = 'Outros'): { svg?: string; img?: str
   return { img: CAT[cat] || 'shopping-bags' };
 }
 
+function FotoIcone({ id, fallback }: { id: string; fallback: any }) {
+  const [src, setSrc] = useState('');
+  const [erro, setErro] = useState(false);
+  useEffect(() => { let vivo = true; carregarFoto(id).then(s => vivo && setSrc(s)).catch(() => vivo && setErro(true)); return () => { vivo = false; }; }, [id]);
+  return erro || !src ? fallback : <span className="product-icon foto" aria-hidden="true"><img src={src} alt="" /></span>;
+}
+
 export default function ProdutoIcone({ nome, cat }: { nome: string; cat?: string }) {
+  const foto = fotoDoProduto(nome);
+  if (foto) return <FotoIcone id={foto} fallback={<Desenho nome={nome} cat={cat} />} />;
+  return <Desenho nome={nome} cat={cat} />;
+}
+
+function Desenho({ nome, cat }: { nome: string; cat?: string }) {
   const i = iconeDe(nome, cat);
   return <span className="product-icon" aria-hidden="true">{i.svg ? <svg viewBox="0 0 48 48" dangerouslySetInnerHTML={{ __html: i.svg }} /> : <img src={'produtos/' + i.img + '.webp'} alt="" loading="lazy" />}</span>;
 }

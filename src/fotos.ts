@@ -23,13 +23,34 @@ async function guardarLocal(id: string, dados: string) {
   memoria.set(id, dados);
   try { const c = await caches.open(CACHE); await c.put('/foto/' + id, new Response(dados)); } catch { /* sem cache */ }
 }
+const FILA = 'aleyas-fotos-pendentes';
+const fila = (): string[] => { try { return JSON.parse(localStorage.getItem(FILA) || '[]'); } catch { return []; } };
+const gravarFila = (l: string[]) => { try { localStorage.setItem(FILA, JSON.stringify([...new Set(l)])); } catch { /* */ } };
+export const fotosPendentes = () => fila().length;
+/** Comprime e guarda a foto no aparelho na hora; se estiver sem internet, envia depois sozinha. */
 export async function enviarFoto(file: File): Promise<string> {
   const dados = await comprimirFoto(file);
   const id = 'f-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
-  await api.salvarFoto(id, dados);
   await guardarLocal(id, dados);
+  try { await api.salvarFoto(id, dados); }
+  catch (e: any) { if (e?.code && e.code !== 0) throw e; gravarFila([...fila(), id]); }
   return id;
 }
+/** Envia as fotos que ficaram guardadas sem internet. */
+export async function sincronizarFotos() {
+  const pend = fila(); if (!pend.length) return 0;
+  let ok = 0;
+  for (const id of pend) {
+    try {
+      let d = memoria.get(id);
+      if (!d) { const c = await caches.open(CACHE); const r = await c.match('/foto/' + id); d = r ? await r.text() : undefined; }
+      if (!d) { gravarFila(fila().filter(x => x !== id)); continue; }
+      await api.salvarFoto(id, d); gravarFila(fila().filter(x => x !== id)); ok++;
+    } catch { break; }
+  }
+  return ok;
+}
+if (typeof window !== 'undefined') { window.addEventListener('online', () => { sincronizarFotos(); }); setTimeout(() => { sincronizarFotos(); }, 5000); }
 export async function carregarFoto(id: string): Promise<string> {
   if (memoria.has(id)) return 'data:image/jpeg;base64,' + memoria.get(id);
   try { const c = await caches.open(CACHE); const r = await c.match('/foto/' + id); if (r) { const d = await r.text(); memoria.set(id, d); return 'data:image/jpeg;base64,' + d; } } catch { /* segue */ }
