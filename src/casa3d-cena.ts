@@ -353,8 +353,8 @@ export function criarCena(el: HTMLElement): Cena {
       ['#151515', '#1f2c4f', '#6b1f2a', '#151515', '#e9e2d5'].forEach((c, i) => em(g, plano(.34, .5, M(c, { side: THREE.DoubleSide, roughness: 1 })), -w / 2 + .2 + i * (w - .3) / 5, h - .25, -d / 2 + (i % 3) * d / 3 + .05));
       return g;
     },
-    bike() {
-      const g = new THREE.Group(); const qd = M('#22313f', { roughness: .4 }), pneu = M('#151515', { roughness: .9 });
+    bike(w) {
+      const g = new THREE.Group(); g.scale.setScalar(w / 1.72); const qd = M('#22313f', { roughness: .4 }), pneu = M('#151515', { roughness: .9 });
       [-1, 1].forEach(s => { em(g, new THREE.Mesh(new THREE.TorusGeometry(.34, .03, 8, 28), pneu), s * .5, .36, 0); for (let k = 0; k < 8; k++) { const r = em(g, cil(.002, .002, .66, M('#aaa'), 3), s * .5, .36, 0); r.rotation.z = k * Math.PI / 8; } });
       const tubo = (x1: number, y1: number, x2: number, y2: number) => { const l = Math.hypot(x2 - x1, y2 - y1), t = em(g, cil(.018, .018, l, qd, 8), (x1 + x2) / 2, (y1 + y2) / 2, 0); t.rotation.z = Math.atan2(x1 - x2, y2 - y1); };
       tubo(-.5, .36, -.05, .4); tubo(-.05, .4, .35, .75); tubo(-.05, .4, -.12, .82); tubo(-.12, .82, .35, .75); tubo(.35, .75, .5, .36); tubo(-.5, .36, -.12, .82);
@@ -417,15 +417,15 @@ export function criarCena(el: HTMLElement): Cena {
     em(g, deitado(cil(.012, .012, .12, cromo, 8), 'x'), larg - .08, 1.0, .03); em(g, deitado(cil(.012, .012, .12, cromo, 8), 'x'), larg - .08, 1.0, -.03);
     g.position.set(hx, 0, hz); g.rotation.y = ang; sombra(g); scene.add(g); return g;
   };
-  const portasAbertas = [folha(mx(50), mz(184), .8, -1.3), folha(mx(190), mz(199), .55, 1.9), folha(mx(258), mz(228), .6, 2.9), folha(mx(200), mz(232), .7, -1.1)];
+  const portasAbertas = [folha(mx(50), mz(184), .8, -1.3), folha(mx(190), mz(199), .55, 1.9), folha(mx(221), mz(230), .7, 1.0), folha(mx(200), mz(232), .7, -1.1)];
   const extras: THREE.Object3D[] = [];
   const cortQuarto = cortina(1.8, 2.3, '#a8a9ab'); cortQuarto.position.set(mx(270), 0, mz(342)); extras.push(cortQuarto);
   const cortEsc = cortina(1.4, 2.3, '#f3f1ec'); cortEsc.position.set(mx(278), 0, mz(114)); extras.push(cortEsc);
-  { const g = new THREE.Group(); const t = rb(.8, .02, .22, M('#2e2a26'), .01); t.position.y = .42; t.rotation.z = 1.2; g.add(t); [-1, 1].forEach(s => { const r = esf(.03, M('#d6a23a'), 8); r.position.set(-.05 + s * .02, .06 + (s + 1) * .32, .08); g.add(r); }); g.position.set(mx(318), 0, mz(192)); extras.push(g); }
+  { const g = new THREE.Group(); const t = rb(.8, .02, .22, M('#2e2a26'), .01); t.position.y = .42; t.rotation.z = 1.2; g.add(t); [-1, 1].forEach(s => { const r = esf(.03, M('#d6a23a'), 8); r.position.set(-.05 + s * .02, .06 + (s + 1) * .32, .08); g.add(r); }); g.position.set(mx(322), 0, mz(160)); extras.push(g); }
   { const g = new THREE.Group(); const c = cil(.17, .14, .25, M('#ef8a9c'), 18); c.position.y = .125; c.scale.x = 1.6; g.add(c); const cesto = cil(.1, .1, .1, M('#7a1f3d'), 16); cesto.position.set(.12, .2, 0); g.add(cesto); g.position.set(mx(150), 0, mz(208)); extras.push(g); }
-  for (let i = 0; i < 6; i++) { const pl = planta(.14, .32 + (i % 3) * .08, 4); pl.position.set(mx(56 + i * 8), 0, mz(341)); extras.push(pl); }
-  { const g = new THREE.Group(); const mop = cil(.012, .012, 1.2, M('#d64a6a'), 6); mop.position.y = .6; mop.rotation.z = .15; g.add(mop); const cab = cil(.12, .14, .05, M('#c9c9c9', { roughness: 1 }), 14); cab.position.y = .03; g.add(cab); g.position.set(mx(152), 0, mz(300)); extras.push(g); }
-  { const g = new THREE.Group(); const fr = cil(.06, .08, .22, M('#78c850', { transparent: true, opacity: .8 }), 14); fr.position.y = .11; g.add(fr); g.position.set(mx(146), 0, mz(320)); extras.push(g); }
+  for (let i = 0; i < 6; i++) { const pl = planta(.14, .32 + (i % 3) * .08, 4); pl.position.set(mx(56 + i * 8), 0, mz(342.5)); extras.push(pl); }
+  { const g = new THREE.Group(); const mop = cil(.012, .012, 1.2, M('#d64a6a'), 6); mop.position.y = .6; mop.rotation.z = .15; g.add(mop); const cab = cil(.12, .14, .05, M('#c9c9c9', { roughness: 1 }), 14); cab.position.y = .03; g.add(cab); g.position.set(mx(178), 0, mz(310)); extras.push(g); }
+  { const g = new THREE.Group(); const fr = cil(.06, .08, .22, M('#78c850', { transparent: true, opacity: .8 }), 14); fr.position.y = .11; g.add(fr); g.position.set(mx(178), 0, mz(322)); extras.push(g); }
   { const g = new THREE.Group(); const prat = bx(.25, .02, .1, M('#fff')); prat.position.set(0, 1.35, 0); g.add(prat); const fr = cil(.03, .03, .16, M('#8d6ad1'), 10); fr.position.set(.05, 1.44, 0); g.add(fr); const chave = cil(.003, .003, .2, M('#2a7a3a'), 4); chave.position.set(-.05, 1.2, 0); g.add(chave); g.position.set(mx(51) + .07, 0, mz(230)); g.rotation.y = Math.PI / 2; extras.push(g); }
   { const g = new THREE.Group(); const lu = plano(1.2, .9, M('#fff', { transparent: true, opacity: 0 })); g.add(lu); extras.push(g); }
   extras.forEach(e => { sombra(e); scene.add(e); });
@@ -501,7 +501,7 @@ export function criarCena(el: HTMLElement): Cena {
       if (planta2d) { const t = r ? new THREE.Vector3(mx(r.x + r.w / 2), 0, mz(r.y + r.h / 2)) : CENTRO.clone(); alvo = { t, p: new THREE.Vector3(0, r ? Math.min(3.2, 7 / Math.max(m(r.w), m(r.h), 1.6)) : 1, 0) }; return; }
       if (!r) { alvo = inicio(); return; }
       const t = new THREE.Vector3(mx(r.x + r.w / 2), 0, mz(r.y + r.h / 2)); const tam = Math.max(m(r.w), m(r.h), 1.8);
-      alvo = { t, p: t.clone().add(new THREE.Vector3(tam * 0.3, 2.6 + tam * 1.5, 1.8 + tam * 1.3)) };
+      const k = Math.max(1, 0.9 / persp.aspect); alvo = { t, p: t.clone().add(new THREE.Vector3(tam * 0.3 * k, (3.2 + tam * 1.7) * k, (2.2 + tam * 1.4) * k)) };
     },
     selecionar(id) {
       if (selecionado) porId.get(selecionado)?.forEach(me => (me.material as THREE.MeshStandardMaterial).emissive?.setHex(0x000000));

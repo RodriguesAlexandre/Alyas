@@ -11,7 +11,7 @@ export const COMODOS_PLANTA: Comodo[] = [
   { id: 'jantar', nome: 'Jantar', comodos: [], x: 50, y: 100, w: 118, h: 99 },
   { id: 'sala', nome: 'Sala', comodos: ['Sala', 'Outro'], x: 50, y: 199, w: 134, h: 105 },
   { id: 'banho', nome: 'Banheiro', comodos: ['Banheiro'], x: 168, y: 100, w: 53, h: 99 },
-  { id: 'escritorio', nome: 'Escritório', comodos: ['Escritório'], x: 221, y: 110, w: 107, h: 89 },
+  { id: 'escritorio', nome: 'Escritório', comodos: ['Escritório'], x: 221, y: 110, w: 107, h: 122 },
   { id: 'casal', nome: 'Quarto do casal', comodos: ['Quarto'], x: 196, y: 232, w: 132, h: 114 },
   { id: 'varanda', nome: 'Varanda', comodos: ['Varanda'], x: 50, y: 304, w: 134, h: 42 },
 ];
@@ -25,7 +25,7 @@ export const PISO_VARANDA: [number, number][] = [[50, 304], [184, 304], [184, 34
 export const PAREDES: [number, number][][] = [
   [[50, 184], [50, 20], [198, 20], [198, 30]], [[198, 70], [198, 110], [255, 110]], [[300, 110], [328, 110], [328, 346], [300, 346]],
   [[240, 346], [196, 346]], [[50, 216], [50, 304]], [[168, 100], [198, 100]], [[168, 100], [168, 199], [190, 199]],
-  [[212, 199], [258, 199], [258, 204]], [[221, 110], [221, 199]], [[258, 228], [258, 232], [228, 232]], [[200, 232], [184, 232], [184, 304], [150, 304]],
+  [[212, 199], [221, 199]], [[221, 110], [221, 202]], [[228, 232], [258, 232]], [[200, 232], [184, 232], [184, 304], [150, 304]],
   [[60, 304], [50, 304]], [[328, 232], [258, 232]], [[50, 304], [50, 346]],
 ];
 export const BLOCO: [number, number, number, number] = [184, 232, 12, 114]; // parede grossa da TV
@@ -66,22 +66,22 @@ export const MOVEIS: Movel[] = [
   { id: 'pia-banheiro', nome: 'Pia do banheiro', x: 170, y: 156, w: 16, d: 22, h: 0.85, face: '+x' },
   { id: 'mesa-pc', nome: 'Mesa do PC', x: 223, y: 118, w: 24, d: 72, h: 0.75, face: '+x' },
   { id: 'cadeira-pc', nome: 'Cadeira ergonômica', x: 248, y: 143, w: 18, d: 18, h: 1.25, face: '-x' },
-  { id: 'puff', nome: 'Puff', x: 292, y: 173, w: 20, d: 20, h: 0.42 },
+  { id: 'puff', nome: 'Puff', x: 300, y: 172, w: 20, d: 20, h: 0.42 },
   { id: 'quadro-branco', nome: 'Quadro branco', x: 324, y: 126, w: 3, d: 54, h: 0.9, base: 0.6, face: '-x' },
-  { id: 'guarda-roupa-escritorio', nome: 'Guarda-roupa do escritório', x: 262, y: 205, w: 64, d: 25, h: 2.3, face: '-z' },
+  { id: 'guarda-roupa-escritorio', nome: 'Guarda-roupa do escritório', x: 258, y: 207, w: 68, d: 24, h: 2.3, face: '-z' },
   { id: 'cama', nome: 'Cama', x: 251, y: 258, w: 75, d: 60, h: 0.6, face: '-x' },
   { id: 'tapete-quarto', nome: 'Tapete do quarto', x: 236, y: 268, w: 18, d: 40, h: 0.02 },
   { id: 'criado', nome: 'Criado-mudo', x: 314, y: 245, w: 13, d: 11, h: 0.5, face: '-x' },
   { id: 'criado', nome: 'Criado-mudo', x: 314, y: 320, w: 13, d: 11, h: 0.5, face: '-x' },
   { id: 'guarda-roupa-casal', nome: 'Guarda-roupa espelhado', x: 198, y: 250, w: 22, d: 92, h: 2.3, face: '+x' },
   { id: 'quadro-quarto', nome: 'Quadro do quarto', x: 326, y: 272, w: 2, d: 30, h: 0.8, base: 1.15, face: '-x' },
-  { id: 'varal-chao', nome: 'Varal de chão', x: 106, y: 310, w: 44, d: 28, h: 1.0 },
-  { id: 'bike', nome: 'Bicicleta', x: 152, y: 334, w: 30, d: 5, h: 0.95 },
+  { id: 'varal-chao', nome: 'Varal de chão', x: 58, y: 309, w: 44, d: 28, h: 1.0 },
+  { id: 'bike', nome: 'Bicicleta', x: 106, y: 336, w: 68, d: 6, h: 0.95 },
 ];
 
 export const nomeMovel = (id?: string) => MOVEIS.find(f => f.id === id)?.nome;
 export const salaDoPonto = (x: number, y: number) => COMODOS_PLANTA.find(r => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h)
-  || (x >= 221 && x <= 328 && y >= 199 && y <= 232 ? COMODOS_PLANTA.find(r => r.id === 'escritorio') : undefined);
+;
 export const salaDoMovel = (id: string) => { const f = MOVEIS.find(m => m.id === id); return f ? salaDoPonto(f.x + f.w / 2, f.y + f.d / 2) : undefined; };
 
 // Propriedades no estilo BIM (categoria, família e material) de cada objeto da maquete
@@ -124,4 +124,4 @@ export const PROPS: Record<string, PropsBIM> = {
   bike: { categoria: 'Equipamento', familia: 'Bicicleta MTB', material: 'Quadro de alumínio' },
 };
 export const medidasMovel = (id: string) => { const fs = MOVEIS.filter(f => f.id === id); if (!fs.length) return null; const f = fs[0]; return { l: Math.round(f.w * 2.5), p: Math.round(f.d * 2.5), a: Math.round(f.h * 100), n: fs.length }; };
-export const areaComodo = (id: string) => { const r = COMODOS_PLANTA.find(c => c.id === id); if (!r) return 0; const extra = id === 'escritorio' ? (70 * 33) : 0; return Math.round((r.w * r.h + extra) / 1600 * 10) / 10; };
+export const areaComodo = (id: string) => { const r = COMODOS_PLANTA.find(c => c.id === id); if (!r) return 0; const extra = 0; return Math.round((r.w * r.h + extra) / 1600 * 10) / 10; };
