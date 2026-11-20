@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, Store } from 'lucide-react';
-import { CATS_CASA, STATUS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, iconeCasa, type ItemCasa, type Cotacao } from './casa-logic';
+import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
 import { api } from './api';
@@ -8,7 +8,8 @@ import { Radar, RefreshCw } from 'lucide-react';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : NaN; };
-const LABEL: Record<string, string> = { temos: 'Temos', cotando: 'Cotando', queremos: 'Queremos' };
+const LABEL: Record<string, string> = { temos: 'Já temos', cotando: 'Cotando', queremos: 'Queremos' };
+const PRIOR: Record<string, string> = { alta: 'Prioridade alta', media: 'Prioridade média', baixa: 'Sem pressa' };
 
 function Foto({ id, className, onClick }: { id: string; className?: string; onClick?: () => void }) {
   const [src, setSrc] = useState(''), [erro, setErro] = useState(false);
@@ -31,11 +32,25 @@ async function puxarRadar(manual: boolean, onReload?: () => void) {
   } catch (e: any) { if (manual) throw e; return null; }
 }
 
+function Cartao({ i, onClick }: { i: ItemCasa; onClick: () => void }) {
+  const m = melhorCotacao(i), f = frenteMeta(i);
+  return <button className={'casa-card' + (i.status === 'temos' ? ' temos' : '')} onClick={onClick}>
+    <Capa item={i} />
+    <span className="casa-info"><b>{i.name}</b><small>{i.cat}{i.comodo ? ' · ' + i.comodo : ''}</small>
+      <span className="casa-linha"><span className={'casa-status ' + i.status}>{LABEL[i.status]}</span>
+        {i.status !== 'temos' && i.prioridade === 'alta' && <span className="casa-prio">prioridade</span>}
+        {i.status === 'temos' ? (i.preco ? <em>{money(i.preco)}</em> : null) : m ? <em>a partir de {money(m.preco)}</em> : i.preco ? <em>≈ {money(i.preco)}</em> : null}
+        {i.fotos?.length > 1 && <small>{i.fotos.length} fotos</small>}</span>
+      {f && i.status !== 'temos' && <small className={'casa-meta ' + (f.diferenca <= 0 ? 'ok' : '')}>{f.diferenca <= 0 ? 'Dentro da meta de ' + money(f.meta) : 'Faltam ' + money(f.diferenca) + ' p/ meta de ' + money(f.meta)}</small>}
+      {i.radar && i.status !== 'temos' && <small className="casa-radar-mini"><Radar size={11} /> Radar: {i.radar.decisao} · {new Date(i.radar.data + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small>}</span>
+  </button>;
+}
+
 export default function Casa({ data, save, busy, ready, onReload }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean; onReload?: () => void }) {
   useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
   const itens: ItemCasa[] = data.casa || [];
   const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
-  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState(false);
+  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>('');
   const r = resumoCasa(itens);
   const lista = filtrarCasa(itens, status, cat, busca);
   const gravar = async (lst: ItemCasa[], msg: string) => save({ ...data, casa: lst }, msg);
@@ -43,31 +58,26 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
   return <>
     <section className="card casa-topo">
       <div className="section-title"><div><span className="eyebrow">ITENS DA CASA</span><h2>Nossa casa, item por item</h2><p className="muted">O que já temos, o que estamos cotando e o que queremos comprar, com fotos.</p></div>
-        <button className="primary" disabled={!ready || busy} onClick={() => setNovo(true)}><Plus size={18} /> Novo item</button></div>
-      <div className="casa-kpis">
-        <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)}</em>}</button>
-        <button className={status === 'cotando' ? 'on' : ''} onClick={() => setStatus(status === 'cotando' ? 'todos' : 'cotando')}><b>{r.cotando}</b><small>cotando</small>{r.previsto > 0 && <em>≈ {money(r.previsto)}</em>}</button>
-        <button className={status === 'queremos' ? 'on' : ''} onClick={() => setStatus(status === 'queremos' ? 'todos' : 'queremos')}><b>{r.queremos}</b><small>queremos</small></button>
+        <div className="casa-novos"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={18} /> Queremos comprar</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Plus size={18} /> Já temos</button></div></div>
+      <div className="casa-kpis duas">
+        <button className={status === 'quero' ? 'on' : ''} onClick={() => setStatus(status === 'quero' ? 'todos' : 'quero')}><b>{r.quero}</b><small>queremos comprar{r.cotando ? ' · ' + r.cotando + ' em cotação' : ''}</small>{r.previsto > 0 && <em>≈ {money(r.previsto)} pelas melhores cotações</em>}</button>
+        <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>já temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)} em itens</em>}</button>
       </div>
       <label className="search casa-busca"><Search size={17} /><input aria-label="Buscar item da casa" placeholder="Buscar: aspirador, pratos, cozinha…" value={busca} onChange={e => setBusca(e.target.value)} /></label>
       <div className="chips casa-cats">{['Todas', ...CATS_CASA].map(c => <button key={c} className={cat === c ? 'selected' : ''} onClick={() => setCat(c)}>{c}</button>)}</div>
     </section>
-    {lista.length ? <div className="casa-grid">{lista.map(i => { const m = melhorCotacao(i); return <button key={i.id} className="casa-card" onClick={() => setAberto(i)}>
-      <Capa item={i} />
-      <span className="casa-info"><b>{i.name}</b><small>{i.cat}{i.comodo ? ' · ' + i.comodo : ''}</small>
-        <span className="casa-linha"><span className={'casa-status ' + i.status}>{LABEL[i.status]}</span>
-          {i.status === 'temos' ? (i.preco ? <em>{money(i.preco)}</em> : null) : m ? <em>a partir de {money(m.preco)}</em> : i.preco ? <em>≈ {money(i.preco)}</em> : null}
-          {i.fotos?.length > 1 && <small>{i.fotos.length} fotos</small>}</span>{i.radar && i.status !== 'temos' && <small className="casa-radar-mini"><Radar size={11} /> Radar: {i.radar.decisao} · {new Date(i.radar.data + 'T12:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</small>}</span>
-    </button>; })}</div>
+    {lista.length ? (status === 'todos' ? [['Queremos comprar', lista.filter(i => i.status !== 'temos')], ['Já temos', lista.filter(i => i.status === 'temos')]] as [string, ItemCasa[]][] : [['', lista]] as [string, ItemCasa[]][]).filter(([, l]) => l.length).map(([titulo, l]) => <section key={titulo || 'lista'} className="casa-secao">
+      {titulo && <h3 className="casa-secao-titulo">{titulo}<span>{l.length}</span></h3>}
+      <div className="casa-grid">{l.map(i => <Cartao key={i.id} i={i} onClick={() => setAberto(i)} />)}</div></section>)
       : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Cadastre o que vocês já têm (com foto) e o que estão cotando, como o robô aspirador.'}</p></section>}
-    {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} busy={busy} onReload={onReload} onClose={() => { setNovo(false); setAberto(null); }}
-      onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(false); setAberto(it); } return ok; }}
+    {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); }}
+      onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
   </>;
 }
 
-function Detalhe({ inicial, busy, onClose, onSave, onDelete, onReload }: { inicial: ItemCasa | null; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
-  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios', status: 'temos', fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined };
+function Detalhe({ inicial, statusNovo, busy, onClose, onSave, onDelete, onReload }: { inicial: ItemCasa | null; statusNovo: 'temos' | 'queremos'; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
+  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios', status: statusNovo, prioridade: statusNovo === 'queremos' ? 'media' : undefined, fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined };
   const [it, setIt] = useState<ItemCasa>(base);
   const [editando, setEditando] = useState(!inicial);
   const [enviando, setEnviando] = useState(0), [erro, setErro] = useState(''), [ver, setVer] = useState(''), [apagar, setApagar] = useState(false);
@@ -107,7 +117,7 @@ function Detalhe({ inicial, busy, onClose, onSave, onDelete, onReload }: { inici
     const preco = String(f.get('preco') || '').trim();
     const prox: ItemCasa = { ...it, name: String(f.get('name')).trim().slice(0, 80), cat: String(f.get('cat')) as any, status: String(f.get('status')) as any,
       comodo: String(f.get('comodo') || '') || undefined, marca: String(f.get('marca') || '').trim() || undefined, modelo: String(f.get('modelo') || '').trim() || undefined,
-      preco: preco ? (num(preco) >= 0 ? num(preco) : null) : null, loja: String(f.get('loja') || '').trim() || undefined, dataCompra: String(f.get('dataCompra') || '') || undefined, note: String(f.get('note') || '').trim().slice(0, 1000) || undefined };
+      preco: preco ? (num(preco) >= 0 ? num(preco) : null) : null, prioridade: (String(f.get('prioridade') || 'media') as any), meta: String(f.get('meta') || '').trim() ? (num(String(f.get('meta'))) > 0 ? num(String(f.get('meta'))) : null) : null, loja: String(f.get('loja') || '').trim() || undefined, dataCompra: String(f.get('dataCompra') || '') || undefined, note: String(f.get('note') || '').trim().slice(0, 1000) || undefined };
     if (!prox.name) return;
     if (await onSave(prox, salvoNoApp ? 'Item atualizado' : prox.name + ' cadastrado')) { setIt(prox); setEditando(false); }
   }
@@ -115,7 +125,7 @@ function Detalhe({ inicial, busy, onClose, onSave, onDelete, onReload }: { inici
   return <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><section className="modal casa-modal" role="dialog" aria-modal="true" aria-label={it.name || 'Novo item da casa'}>
     <button className="modal-close icon-btn" aria-label="Fechar" onClick={onClose}><X /></button>
     <span className="eyebrow">{salvoNoApp ? it.cat.toUpperCase() : 'NOVO ITEM DA CASA'}</span>
-    {!editando && <><h2>{it.name}</h2><p className="muted">{[LABEL[it.status], it.comodo, it.marca, it.modelo].filter(Boolean).join(' · ')}</p></>}
+    {!editando && <><h2>{it.name}</h2><p className="muted">{[LABEL[it.status], it.status !== 'temos' && it.prioridade ? PRIOR[it.prioridade] : '', it.comodo, it.marca, it.modelo].filter(Boolean).join(' · ')}</p></>}
 
     <div className="casa-galeria">
       {it.fotos.map(id => <Foto key={id} id={id} onClick={() => setVer(id)} />)}
@@ -134,7 +144,9 @@ function Detalhe({ inicial, busy, onClose, onSave, onDelete, onReload }: { inici
       <label>Nome<input name="name" required maxLength={80} defaultValue={it.name} placeholder="Ex.: Robô aspirador, jogo de pratos" autoFocus={!salvoNoApp} /></label>
       <div className="form-grid">
         <label>Categoria<select name="cat" defaultValue={it.cat}>{CATS_CASA.map(c => <option key={c}>{c}</option>)}</select></label>
-        <label>Situação<select name="status" defaultValue={it.status}>{STATUS_CASA.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select></label>
+        <label>Situação<select name="status" defaultValue={it.status}><option value="temos">Já temos</option><option value="queremos">Queremos comprar</option><option value="cotando">Queremos · cotando preços</option></select></label>
+        <label>Prioridade<select name="prioridade" defaultValue={it.prioridade || 'media'}><option value="alta">Alta</option><option value="media">Média</option><option value="baixa">Sem pressa</option></select></label>
+        <label>Meta de preço (se for comprar)<input name="meta" inputMode="decimal" defaultValue={it.meta != null ? String(it.meta).replace('.', ',') : ''} placeholder="Ex.: 3.500" /></label>
         <label>Cômodo<select name="comodo" defaultValue={it.comodo || ''}><option value="">—</option>{COMODOS.map(c => <option key={c}>{c}</option>)}</select></label>
         <label>Marca<input name="marca" maxLength={60} defaultValue={it.marca || ''} /></label>
         <label>Modelo<input name="modelo" maxLength={60} defaultValue={it.modelo || ''} /></label>
@@ -150,6 +162,7 @@ function Detalhe({ inicial, busy, onClose, onSave, onDelete, onReload }: { inici
         {it.preco != null && <><dt>{it.status === 'temos' ? 'Pago' : 'Estimado'}</dt><dd>{money(it.preco)}{it.loja ? ' · ' + it.loja : ''}</dd></>}
         {it.dataCompra && <><dt>Comprado em</dt><dd>{new Date(it.dataCompra + 'T12:00').toLocaleDateString('pt-BR')}</dd></>}
         {it.note && <><dt>Observações</dt><dd>{it.note}</dd></>}
+        {it.status !== 'temos' && it.meta ? <><dt>Meta</dt><dd>{money(it.meta)}{(() => { const f = frenteMeta(it); return f ? (f.diferenca <= 0 ? ' · a melhor cotação já está dentro!' : ' · faltam ' + money(f.diferenca)) : ''; })()}</dd></> : null}
       </dl>
       {it.radar && it.status !== 'temos' && <div className={'casa-radar ' + (/comprar/i.test(it.radar.decisao) ? 'ok' : /validar/i.test(it.radar.decisao) ? 'warn' : '')}>
         <span><Radar size={16} /> <b>Radar diário · {it.radar.decisao}</b><small>atualizado em {new Date(it.radar.data + 'T12:00').toLocaleDateString('pt-BR')}</small></span>

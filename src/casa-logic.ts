@@ -12,6 +12,7 @@ export type ItemCasa = {
   comodo?: string; marca?: string; modelo?: string; preco?: number | null; dataCompra?: string; loja?: string;
   note?: string; fotos: string[]; cotacoes: Cotacao[]; criado: string; por?: string;
   radar?: { data: string; decisao: string; titulo?: string; link?: string };
+  prioridade?: 'alta' | 'media' | 'baixa'; meta?: number | null;
 };
 const n = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -22,16 +23,19 @@ export function resumoCasa(itens: ItemCasa[]) {
   const temos = itens.filter(i => i.status === 'temos');
   const planos = itens.filter(i => i.status !== 'temos');
   return {
-    temos: temos.length, cotando: itens.filter(i => i.status === 'cotando').length, queremos: itens.filter(i => i.status === 'queremos').length,
+    quero: planos.length, temos: temos.length, cotando: itens.filter(i => i.status === 'cotando').length, queremos: itens.filter(i => i.status === 'queremos').length,
     valorTemos: temos.reduce((a, i) => a + (i.preco || 0), 0),
     previsto: planos.reduce((a, i) => a + (melhorCotacao(i)?.preco || i.preco || 0), 0),
   };
 }
+const PRI: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
+/** Quanto falta (ou sobra) entre a melhor cotação e a meta de preço. */
+export function frenteMeta(i: ItemCasa) { const m = melhorCotacao(i); if (!m || !i.meta) return null; return { melhor: m.preco, meta: i.meta, diferenca: Math.round((m.preco - i.meta) * 100) / 100 }; }
 export function filtrarCasa(itens: ItemCasa[], status: string, cat: string, busca: string) {
   const b = n(busca.trim());
-  return itens.filter(i => (status === 'todos' || i.status === status) && (cat === 'Todas' || i.cat === cat) &&
+  return itens.filter(i => (status === 'todos' || i.status === status || (status === 'quero' && i.status !== 'temos')) && (cat === 'Todas' || i.cat === cat) &&
     (!b || [i.name, i.marca, i.modelo, i.comodo, i.note, i.loja].some(x => n(x || '').includes(b))))
-    .sort((a, b2) => a.name.localeCompare(b2.name, 'pt-BR'));
+    .sort((a, b2) => (PRI[a.prioridade || 'media'] - PRI[b2.prioridade || 'media']) || a.name.localeCompare(b2.name, 'pt-BR'));
 }
 /** Marca como comprado usando uma cotação (ou o preço informado). */
 export function comprei(i: ItemCasa, c?: Cotacao | null, hoje = new Date()): ItemCasa {

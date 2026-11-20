@@ -259,3 +259,9 @@ html.escuro .cotacao{border-color:#2c2d29}html.escuro .casa-kpis em,html.escuro 
 .casa-radar-mini{display:flex;align-items:center;gap:4px;margin-top:6px;color:#8a6d47!important;font-weight:600}
 .casa-radar{background:#f9f3e8;border-radius:12px;padding:12px 14px;margin:14px 0 6px;font-size:13px;color:#5a4a36}.casa-radar.ok{background:#e9f3e1;color:#335a28}.casa-radar.warn{background:#fdf0dc}.casa-radar>span{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.casa-radar small{font-size:11px;opacity:.8}.casa-radar p{margin:8px 0 10px;line-height:1.45}.casa-radar>div{display:flex;gap:8px;flex-wrap:wrap}.casa-radar .secondary{padding:8px 11px;font-size:11px;display:inline-flex;gap:6px;align-items:center;text-decoration:none}
 html.escuro .casa-radar{background:#2e261c;color:#e8c9a0}html.escuro .casa-radar.ok{background:#253023;color:#a9cc8f}html.escuro .casa-radar-mini{color:#e8c9a0!important}
+.casa-novos{display:flex;gap:8px;flex-wrap:wrap}.casa-kpis.duas{grid-template-columns:1fr 1fr}.casa-kpis em{display:block}
+.casa-secao{margin-top:22px}.casa-secao-titulo{display:flex;align-items:center;gap:8px;font-size:16px;margin:0 2px}.casa-secao-titulo span{font-size:11px;background:#eef2e7;color:#55664a;border-radius:20px;padding:3px 9px}.casa-secao .casa-grid{margin-top:12px}
+.casa-card.temos .casa-foto.capa{aspect-ratio:16/9}.casa-prio{font-size:10px;font-weight:700;padding:4px 8px;border-radius:20px;background:#fde3d6;color:#b0583a;text-transform:uppercase;letter-spacing:.4px}
+.casa-meta{display:block;margin-top:5px;font-weight:700;color:#b0583a!important}.casa-meta.ok{color:#3f7a57!important}
+@media(max-width:800px){.casa-novos{width:100%}.casa-novos button{flex:1;padding:12px 10px;font-size:12px}}
+html.escuro .casa-secao-titulo span{background:#272824;color:#a3a299}html.escuro .casa-prio{background:#3a2a20;color:#f0b48f}html.escuro .casa-meta{color:#f0b48f!important}html.escuro .casa-meta.ok{color:#a9cc8f!important}
