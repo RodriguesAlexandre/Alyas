@@ -32,7 +32,7 @@ export default function NotaIA({ data, save, busy }: { data: any; save: (d: any,
   async function ler(p: { url?: string; image?: string }, msg: string) {
     setErro(''); setNota(null); setLendo(msg);
     try { setNota(montarNota(await api.lerNota(p))); }
-    catch (e: any) { setErro(e?.code === 412 ? 'Para ler notas, ligue a IA em Nossa casa (é grátis).' : p.url ? 'Li o QR Code, mas a Sefaz ainda não liberou essa nota (cupom em contingência demora algumas horas). Tire uma foto do cupom que eu leio pelos itens.' : e?.message || 'Não consegui ler a nota.'); }
+    catch (e: any) { setErro(e?.code === 412 ? 'Para ler notas, ligue a IA em Ajustes (é grátis).' : p.url ? 'Li o QR Code, mas a Sefaz ainda não liberou essa nota (cupom em contingência demora algumas horas). Tire uma foto do cupom que eu leio pelos itens.' : e?.message || 'Não consegui ler a nota.'); }
     finally { setLendo(''); }
   }
   async function escanear() {

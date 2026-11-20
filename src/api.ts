@@ -76,6 +76,9 @@ export const api = {
   ligarIA: (gemini: string) => chamar('setai', { gemini }, 30000).then(r => !!r.ligada),
   assistente: (messages: { role: string; text: string }[], context: any) => chamar('ai', { messages, context }, 60000) as Promise<{ reply: string; actions: any[] }>,
   lerNota: (p: { url?: string; image?: string; mime?: string }) => chamar('nota', p, 90000).then(r => r.nota as any),
+  salvarFoto: (id: string, dados: string) => chamar('fotoSalvar', { id, dados }, 60000).then(r => r.id as string),
+  foto: (id: string) => chamar('foto', { id }, 45000).then(r => r.dados as string),
+  apagarFoto: (id: string) => chamar('fotoApagar', { id }, 30000),
   notas: () => chamar('receipts').then(r => r.notes as any[]),
 };
 

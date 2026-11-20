@@ -228,3 +228,31 @@ html.escuro .secondary{background:#2a2c27;border-color:#3d4038;color:#ecebe5}htm
 html.escuro .whats{background:#1f8a4c}
 .toolbar .whats,.whats{color:#fff;border:0}.whats svg{color:#fff}
 html.escuro .secondary{background:#34372f;border-color:#4a4e44}
+.apagar-produto{color:#b0583a}.apagar-confirma{display:flex;flex-direction:column;gap:8px;background:#fbefe7;border-radius:9px;padding:10px 12px;font-size:12px;color:#7a4a32;margin:6px 0}.apagar-confirma div{display:flex;gap:8px}.apagar-confirma button{flex:1;padding:9px;font-size:12px}
+.perigo{background:#c4473b;color:#fff;font-weight:700;border-radius:8px}.perigo:hover:not(:disabled){background:#a93a30}
+html.escuro .apagar-confirma{background:#3a2a20;color:#f0c9ad}html.escuro .apagar-produto{color:#e89a78}
+/* ===== Aba Casa ===== */
+@media(max-width:800px){nav button{width:16.6%;font-size:7.5px}}
+.casa-topo .section-title{align-items:flex-start;gap:12px;flex-wrap:wrap}
+.casa-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0 12px}.casa-kpis button{background:#f6f7f0;border:1px solid transparent;border-radius:12px;padding:12px;text-align:left;display:flex;flex-direction:column;gap:2px}.casa-kpis button.on{border-color:var(--green);background:#eef3e6}.casa-kpis b{font:700 24px Manrope;letter-spacing:-.6px}.casa-kpis small{font-size:11px;color:var(--muted)}.casa-kpis em{font-style:normal;font-size:11px;font-weight:700;color:#3f7a57}
+.casa-busca{margin-bottom:10px}.casa-cats{flex-wrap:nowrap;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}.casa-cats button{white-space:nowrap}
+.casa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:16px}
+.casa-card{display:flex;flex-direction:column;background:var(--paper,#fff);border:1px solid var(--line);border-radius:16px;overflow:hidden;text-align:left;padding:0;transition:transform .15s}.casa-card:hover{transform:translateY(-2px)}
+.casa-foto{display:block;background:#f3f1e8;overflow:hidden;position:relative}.casa-foto img{width:100%;height:100%;object-fit:cover;display:block}.casa-foto.vazia{display:grid;place-items:center}.casa-foto.vazia img{width:46%;height:auto;object-fit:contain}
+.casa-foto.capa{aspect-ratio:4/3;width:100%}.casa-foto i{position:absolute;inset:0;display:grid;place-items:center;color:#b0583a}
+.casa-info{padding:12px 14px 14px;display:flex;flex-direction:column;gap:3px}.casa-info b{font-size:14px}.casa-info small{font-size:11px;color:var(--muted)}.casa-linha{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px}.casa-linha em{font-style:normal;font-size:12px;font-weight:700}
+.casa-status{font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;text-transform:uppercase;letter-spacing:.4px}.casa-status.temos{background:#e4efdc;color:#3f6b2e}.casa-status.cotando{background:#fbe9d8;color:#b0583a}.casa-status.queremos{background:#e6eef8;color:#2a5a92}
+.casa-modal{max-width:620px}.casa-galeria{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px;margin:14px 0 10px}.casa-galeria .casa-foto{aspect-ratio:1;border-radius:12px;cursor:zoom-in}.casa-galeria .casa-foto.grande{grid-column:1/-1;aspect-ratio:16/7;cursor:default}
+.casa-foto.carregando i{width:26px;height:26px;margin:auto;border:3px solid #d9dfcd;border-top-color:var(--green);border-radius:50%;animation:gira 0.8s linear infinite;inset:auto;position:static}.casa-foto.carregando{display:grid}@keyframes gira{to{transform:rotate(360deg)}}
+.casa-acoes-foto{display:flex;gap:10px}.casa-acoes-foto button{flex:1}
+.casa-form{margin-top:14px}.casa-form .form-grid{grid-template-columns:1fr 1fr}
+.casa-dados{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:16px 0;font-size:13px}.casa-dados dt{color:var(--muted)}.casa-dados dd{margin:0;font-weight:600}
+.casa-cotacoes{border-top:1px solid var(--line);padding-top:14px;margin-top:6px}.casa-cotacoes h3{display:flex;gap:8px;align-items:center;font-size:14px;margin:0 0 10px;flex-wrap:wrap}.casa-cotacoes h3 small{font-weight:600;color:#3f7a57}
+.cotacao{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #f0f2eb}.cotacao>span{flex:1;min-width:0}.cotacao small{display:block;font-size:10px;color:var(--muted)}.cotacao small a{color:#3f7a57}.cotacao strong{font-size:14px}.cotacao.melhor strong{color:#3f7a57}.cotacao .secondary{padding:7px 10px;font-size:11px}
+.cotacao-nova{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-top:12px}.cotacao-nova label{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:9px;padding:0 10px;font-size:12px;color:var(--muted)}.cotacao-nova label input{border:0;padding:10px 0;outline:0;min-width:0;flex:1;background:transparent}.cotacao-nova>input{grid-column:1/-1}.cotacao-nova button{grid-column:1/-1}
+.casa-rodape{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:18px}.perigo-txt{color:#b0583a;margin-left:auto}
+.casa-visor{position:fixed;inset:0;background:#000d;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:14px}.casa-visor .casa-foto.cheia{background:none;max-width:100%;max-height:78vh}.casa-visor .casa-foto.cheia img{max-height:78vh;width:auto;max-width:100%;object-fit:contain;border-radius:10px}.casa-visor-acoes{display:flex;gap:10px}
+@media(max-width:800px){.casa-grid{grid-template-columns:1fr 1fr;gap:10px}.casa-info{padding:10px}.casa-info b{font-size:13px}.casa-kpis b{font-size:20px}.casa-form .form-grid{grid-template-columns:1fr}.cotacao{flex-wrap:wrap}.cotacao>span{flex-basis:55%}}
+html.escuro .casa-kpis button{background:#272824}html.escuro .casa-kpis button.on{background:#2f3a2c;border-color:#5f9a78}html.escuro .casa-card{background:#1e1f1c}html.escuro .casa-foto{background:#272824}
+html.escuro .casa-status.temos{background:#253023;color:#a9cc8f}html.escuro .casa-status.cotando{background:#3a2a20;color:#f0b48f}html.escuro .casa-status.queremos{background:#1f2a38;color:#9cc0ea}
+html.escuro .cotacao{border-color:#2c2d29}html.escuro .casa-kpis em,html.escuro .casa-cotacoes h3 small,html.escuro .cotacao.melhor strong{color:#a9c39a}

@@ -161,6 +161,9 @@ function tratar(p) {
     case 'aistatus': return { ok: true, ligada: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') };
     case 'setai': return ligarIA(p.gemini);
     case 'nota': return lerNota(p);
+    case 'fotoSalvar': return salvarFoto(p);
+    case 'foto': return lerFoto(p);
+    case 'fotoApagar': return apagarFoto(p);
     default: return falha('Ação desconhecida.', 400);
   }
 }
@@ -399,7 +402,56 @@ const ESPELHOS = [
     linhas: function (d) { return Object.keys(d.plan || {}).sort().map(function (k) { const p = k.split('-'); return [DIAS[Number(p[0])] || p[0], p.slice(1).join('-'), d.plan[k].recipe]; }); } },
   { aba: 'Perfis', chave: 'profiles', cab: ['Nome', 'Porções por refeição', 'Meta kcal', 'Meta proteína (g)', 'Orçamento semanal (R$)'],
     linhas: function (d) { return d.profiles.map(function (p, i) { return [p.name, p.portions, p.kcal, p.protein, i === 0 ? d.budget : '']; }); }, extra: 'budget' },
+  { aba: 'Casa', chave: 'casa', cab: ['Item', 'Categoria', 'Situação', 'Cômodo', 'Marca', 'Modelo', 'Valor (R$)', 'Loja', 'Data da compra', 'Melhor cotação (R$)', 'Fotos', 'Observações'],
+    linhas: function (d) { return (d.casa || []).map(function (i) { const c = (i.cotacoes || []).map(function (x) { return x.preco; }).filter(function (v) { return v > 0; }); return [i.name, i.cat, { temos: 'Temos', cotando: 'Cotando', queremos: 'Queremos' }[i.status] || i.status, i.comodo || '', i.marca || '', i.modelo || '', i.preco == null ? '' : i.preco, i.loja || '', i.dataCompra || '', c.length ? Math.min.apply(null, c) : '', (i.fotos || []).length, i.note || '']; }); } },
 ];
+
+// ---------- Fotos dos itens da casa (aba oculta _fotos, em pedaços de até 45 mil caracteres) ----------
+const ABA_FOTOS = '_fotos';
+function abaFotos() {
+  const ss = SpreadsheetApp.getActive();
+  let sh = ss.getSheetByName(ABA_FOTOS);
+  if (!sh) { sh = ss.insertSheet(ABA_FOTOS); sh.getRange(1, 1, 1, 3).setValues([['id', 'parte', 'dados']]); sh.hideSheet(); }
+  return sh;
+}
+const ID_FOTO = /^f-[a-z0-9-]{4,50}$/;
+function linhasDaFoto(sh, id) {
+  const n = sh.getLastRow(); if (n < 2) return [];
+  const ids = sh.getRange(2, 1, n - 1, 1).getValues(); const out = [];
+  for (let i = 0; i < ids.length; i++) if (ids[i][0] === id) out.push(i + 2);
+  return out;
+}
+function salvarFoto(p) {
+  const id = String(p.id || ''), dados = String(p.dados || '');
+  if (!ID_FOTO.test(id)) return falha('Foto inválida.', 400);
+  if (!/^[A-Za-z0-9+/=]+$/.test(dados) || dados.length < 100) return falha('Foto inválida.', 400);
+  if (dados.length > 600000) return falha('Foto grande demais.', 413);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try {
+    const sh = abaFotos();
+    linhasDaFoto(sh, id).reverse().forEach(function (r) { sh.deleteRow(r); });
+    const partes = [];
+    for (let i = 0; i < dados.length; i += PEDACO) partes.push([id, partes.length, 'x' + dados.slice(i, i + PEDACO)]); // 'x' evita que o Sheets leia como fórmula
+    sh.getRange(sh.getLastRow() + 1, 1, partes.length, 3).setNumberFormat('@').setValues(partes);
+  } finally { lock.releaseLock(); }
+  return { ok: true, id: id };
+}
+function lerFoto(p) {
+  const id = String(p.id || '');
+  if (!ID_FOTO.test(id)) return falha('Foto inválida.', 400);
+  const sh = abaFotos(); const n = sh.getLastRow();
+  if (n < 2) return falha('Foto não encontrada.', 404);
+  const v = sh.getRange(2, 1, n - 1, 3).getValues().filter(function (r) { return r[0] === id; }).sort(function (a, b) { return a[1] - b[1]; });
+  if (!v.length) return falha('Foto não encontrada.', 404);
+  return { ok: true, dados: v.map(function (r) { return String(r[2]).slice(1); }).join('') };
+}
+function apagarFoto(p) {
+  const id = String(p.id || '');
+  if (!ID_FOTO.test(id)) return falha('Foto inválida.', 400);
+  const lock = LockService.getScriptLock(); lock.waitLock(20000);
+  try { const sh = abaFotos(); linhasDaFoto(sh, id).reverse().forEach(function (r) { sh.deleteRow(r); }); } finally { lock.releaseLock(); }
+  return { ok: true };
+}
 
 function garantirAba(nome, cab) {
   const ss = SpreadsheetApp.getActive();

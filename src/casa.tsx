@@ -1,0 +1,163 @@
+import { useEffect, useRef, useState } from 'react';
+import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, Store } from 'lucide-react';
+import { CATS_CASA, STATUS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, iconeCasa, type ItemCasa, type Cotacao } from './casa-logic';
+import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
+import { quem } from './quem';
+
+const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : NaN; };
+const LABEL: Record<string, string> = { temos: 'Temos', cotando: 'Cotando', queremos: 'Queremos' };
+
+function Foto({ id, className, onClick }: { id: string; className?: string; onClick?: () => void }) {
+  const [src, setSrc] = useState(''), [erro, setErro] = useState(false);
+  useEffect(() => { let vivo = true; carregarFoto(id).then(s => vivo && setSrc(s)).catch(() => vivo && setErro(true)); return () => { vivo = false; }; }, [id]);
+  return <span className={'casa-foto ' + (className || '')} onClick={onClick}>{src ? <img src={src} alt="" /> : <i>{erro ? '!' : ''}</i>}</span>;
+}
+
+function Capa({ item }: { item: ItemCasa }) {
+  return item.fotos?.length ? <Foto id={item.fotos[0]} className="capa" /> : <span className="casa-foto capa vazia"><img src={'produtos/' + iconeCasa(item) + '.webp'} alt="" /></span>;
+}
+
+export default function Casa({ data, save, busy, ready }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean }) {
+  const itens: ItemCasa[] = data.casa || [];
+  const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
+  const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState(false);
+  const r = resumoCasa(itens);
+  const lista = filtrarCasa(itens, status, cat, busca);
+  const gravar = async (lst: ItemCasa[], msg: string) => save({ ...data, casa: lst }, msg);
+
+  return <>
+    <section className="card casa-topo">
+      <div className="section-title"><div><span className="eyebrow">ITENS DA CASA</span><h2>Nossa casa, item por item</h2><p className="muted">O que já temos, o que estamos cotando e o que queremos comprar, com fotos.</p></div>
+        <button className="primary" disabled={!ready || busy} onClick={() => setNovo(true)}><Plus size={18} /> Novo item</button></div>
+      <div className="casa-kpis">
+        <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)}</em>}</button>
+        <button className={status === 'cotando' ? 'on' : ''} onClick={() => setStatus(status === 'cotando' ? 'todos' : 'cotando')}><b>{r.cotando}</b><small>cotando</small>{r.previsto > 0 && <em>≈ {money(r.previsto)}</em>}</button>
+        <button className={status === 'queremos' ? 'on' : ''} onClick={() => setStatus(status === 'queremos' ? 'todos' : 'queremos')}><b>{r.queremos}</b><small>queremos</small></button>
+      </div>
+      <label className="search casa-busca"><Search size={17} /><input aria-label="Buscar item da casa" placeholder="Buscar: aspirador, pratos, cozinha…" value={busca} onChange={e => setBusca(e.target.value)} /></label>
+      <div className="chips casa-cats">{['Todas', ...CATS_CASA].map(c => <button key={c} className={cat === c ? 'selected' : ''} onClick={() => setCat(c)}>{c}</button>)}</div>
+    </section>
+    {lista.length ? <div className="casa-grid">{lista.map(i => { const m = melhorCotacao(i); return <button key={i.id} className="casa-card" onClick={() => setAberto(i)}>
+      <Capa item={i} />
+      <span className="casa-info"><b>{i.name}</b><small>{i.cat}{i.comodo ? ' · ' + i.comodo : ''}</small>
+        <span className="casa-linha"><span className={'casa-status ' + i.status}>{LABEL[i.status]}</span>
+          {i.status === 'temos' ? (i.preco ? <em>{money(i.preco)}</em> : null) : m ? <em>a partir de {money(m.preco)}</em> : i.preco ? <em>≈ {money(i.preco)}</em> : null}
+          {i.fotos?.length > 1 && <small>{i.fotos.length} fotos</small>}</span></span>
+    </button>; })}</div>
+      : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Cadastre o que vocês já têm (com foto) e o que estão cotando, como o robô aspirador.'}</p></section>}
+    {(novo || aberto) && <Detalhe key={aberto?.id || 'novo'} inicial={aberto} busy={busy} onClose={() => { setNovo(false); setAberto(null); }}
+      onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(false); setAberto(it); } return ok; }}
+      onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
+  </>;
+}
+
+function Detalhe({ inicial, busy, onClose, onSave, onDelete }: { inicial: ItemCasa | null; busy: boolean; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
+  const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios de mesa', status: 'temos', fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined };
+  const [it, setIt] = useState<ItemCasa>(base);
+  const [editando, setEditando] = useState(!inicial);
+  const [enviando, setEnviando] = useState(0), [erro, setErro] = useState(''), [ver, setVer] = useState(''), [apagar, setApagar] = useState(false);
+  const [cot, setCot] = useState({ loja: '', preco: '', link: '' });
+  const cam = useRef<HTMLInputElement>(null), gal = useRef<HTMLInputElement>(null);
+  const salvoNoApp = !!inicial;
+  const m = melhorCotacao(it);
+
+  async function fotos(files: FileList | null) {
+    if (!files?.length) return;
+    setErro(''); const novas: string[] = [];
+    for (const f of [...files].slice(0, 12 - it.fotos.length)) {
+      setEnviando(x => x + 1);
+      try { novas.push(await enviarFoto(f)); } catch (e: any) { setErro(e?.message?.includes('conex') ? 'Sem internet agora: a foto não foi salva. Tente de novo.' : 'Não consegui salvar a foto. Tente de novo.'); }
+      finally { setEnviando(x => x - 1); }
+    }
+    if (!novas.length) return;
+    const prox = { ...it, fotos: [...it.fotos, ...novas] };
+    setIt(prox);
+    if (salvoNoApp && !editando) await onSave(prox, novas.length > 1 ? novas.length + ' fotos salvas' : 'Foto salva');
+  }
+  async function tirarFoto(id: string) {
+    const prox = { ...it, fotos: it.fotos.filter(f => f !== id) }; setIt(prox); setVer('');
+    if (salvoNoApp && !editando) { if (await onSave(prox, 'Foto removida')) apagarFoto(id); } else apagarFoto(id);
+  }
+  async function addCotacao(e: React.FormEvent) {
+    e.preventDefault(); const preco = num(cot.preco);
+    if (!cot.loja.trim() || !(preco > 0)) { setErro('Informe a loja e um preço válido.'); return; }
+    const c: Cotacao = { id: 'c-' + Date.now().toString(36), loja: cot.loja.trim().slice(0, 80), preco, data: new Date().toISOString(), ...(cot.link.trim() ? { link: cot.link.trim().slice(0, 500) } : {}) };
+    const prox: ItemCasa = { ...it, status: it.status === 'temos' ? 'cotando' : it.status, cotacoes: [...it.cotacoes, c] };
+    setIt(prox); setCot({ loja: '', preco: '', link: '' }); setErro('');
+    if (salvoNoApp && !editando) await onSave(prox, 'Cotação anotada');
+  }
+  async function salvarForm(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault(); const f = new FormData(e.currentTarget);
+    const preco = String(f.get('preco') || '').trim();
+    const prox: ItemCasa = { ...it, name: String(f.get('name')).trim().slice(0, 80), cat: String(f.get('cat')) as any, status: String(f.get('status')) as any,
+      comodo: String(f.get('comodo') || '') || undefined, marca: String(f.get('marca') || '').trim() || undefined, modelo: String(f.get('modelo') || '').trim() || undefined,
+      preco: preco ? (num(preco) >= 0 ? num(preco) : null) : null, loja: String(f.get('loja') || '').trim() || undefined, dataCompra: String(f.get('dataCompra') || '') || undefined, note: String(f.get('note') || '').trim().slice(0, 1000) || undefined };
+    if (!prox.name) return;
+    if (await onSave(prox, salvoNoApp ? 'Item atualizado' : prox.name + ' cadastrado')) { setIt(prox); setEditando(false); }
+  }
+
+  return <div className="overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}><section className="modal casa-modal" role="dialog" aria-modal="true" aria-label={it.name || 'Novo item da casa'}>
+    <button className="modal-close icon-btn" aria-label="Fechar" onClick={onClose}><X /></button>
+    <span className="eyebrow">{salvoNoApp ? it.cat.toUpperCase() : 'NOVO ITEM DA CASA'}</span>
+    {!editando && <><h2>{it.name}</h2><p className="muted">{[LABEL[it.status], it.comodo, it.marca, it.modelo].filter(Boolean).join(' · ')}</p></>}
+
+    <div className="casa-galeria">
+      {it.fotos.map(id => <Foto key={id} id={id} onClick={() => setVer(id)} />)}
+      {Array.from({ length: enviando }, (_, k) => <span key={'e' + k} className="casa-foto carregando"><i /></span>)}
+      {!it.fotos.length && !enviando && <span className="casa-foto vazia grande"><img src={'produtos/' + iconeCasa(it) + '.webp'} alt="" /></span>}
+    </div>
+    <div className="casa-acoes-foto">
+      <button type="button" className="primary" disabled={busy || it.fotos.length >= 12} onClick={() => cam.current?.click()}><Camera size={17} /> Tirar foto</button>
+      <button type="button" className="secondary" disabled={busy || it.fotos.length >= 12} onClick={() => gal.current?.click()}><ImagePlus size={17} /> Da galeria</button>
+      <input ref={cam} type="file" accept="image/*" capture="environment" hidden onChange={e => { fotos(e.target.files); e.target.value = ''; }} />
+      <input ref={gal} type="file" accept="image/*" multiple hidden onChange={e => { fotos(e.target.files); e.target.value = ''; }} />
+    </div>
+    {erro && <p className="alert" role="alert">{erro}</p>}
+
+    {editando ? <form onSubmit={salvarForm} className="casa-form">
+      <label>Nome<input name="name" required maxLength={80} defaultValue={it.name} placeholder="Ex.: Robô aspirador, jogo de pratos" autoFocus={!salvoNoApp} /></label>
+      <div className="form-grid">
+        <label>Categoria<select name="cat" defaultValue={it.cat}>{CATS_CASA.map(c => <option key={c}>{c}</option>)}</select></label>
+        <label>Situação<select name="status" defaultValue={it.status}>{STATUS_CASA.map(s => <option key={s.v} value={s.v}>{s.l}</option>)}</select></label>
+        <label>Cômodo<select name="comodo" defaultValue={it.comodo || ''}><option value="">—</option>{COMODOS.map(c => <option key={c}>{c}</option>)}</select></label>
+        <label>Marca<input name="marca" maxLength={60} defaultValue={it.marca || ''} /></label>
+        <label>Modelo<input name="modelo" maxLength={60} defaultValue={it.modelo || ''} /></label>
+        <label>Valor (pago ou estimado)<input name="preco" inputMode="decimal" defaultValue={it.preco != null ? String(it.preco).replace('.', ',') : ''} placeholder="0,00" /></label>
+        <label>Loja<input name="loja" maxLength={80} defaultValue={it.loja || ''} /></label>
+        <label>Data da compra<input name="dataCompra" type="date" defaultValue={it.dataCompra || ''} /></label>
+      </div>
+      <label>Observações<textarea name="note" rows={2} maxLength={1000} defaultValue={it.note || ''} placeholder="Garantia, voltagem, cor, onde fica guardado…" /></label>
+      <button className="primary full" disabled={busy || enviando > 0}><Check size={17} /> {salvoNoApp ? 'Salvar alterações' : 'Cadastrar item'}</button>
+      {salvoNoApp && <button type="button" className="text-btn" onClick={() => { setIt(inicial!); setEditando(false); }}>Cancelar edição</button>}
+    </form> : <>
+      <dl className="casa-dados">
+        {it.preco != null && <><dt>{it.status === 'temos' ? 'Pago' : 'Estimado'}</dt><dd>{money(it.preco)}{it.loja ? ' · ' + it.loja : ''}</dd></>}
+        {it.dataCompra && <><dt>Comprado em</dt><dd>{new Date(it.dataCompra + 'T12:00').toLocaleDateString('pt-BR')}</dd></>}
+        {it.note && <><dt>Observações</dt><dd>{it.note}</dd></>}
+      </dl>
+      {it.status !== 'temos' && <div className="casa-cotacoes">
+        <h3><Tag size={16} /> Cotações {m && <small>melhor: {money(m.preco)} na {m.loja}</small>}</h3>
+        {[...it.cotacoes].sort((a, b) => a.preco - b.preco).map(c => <div key={c.id} className={'cotacao' + (m?.id === c.id ? ' melhor' : '')}>
+          <span><b>{c.loja}</b><small>{new Date(c.data).toLocaleDateString('pt-BR')}{c.link && <> · <a href={c.link} target="_blank" rel="noopener noreferrer">abrir <ExternalLink size={11} /></a></>}</small></span>
+          <strong>{money(c.preco)}</strong>
+          <button className="secondary" disabled={busy} onClick={() => onSave(comprei(it, c), 'Comprado! ' + it.name + ' agora está em Temos').then(ok => ok && setIt(comprei(it, c)))}>Comprei aqui</button>
+          <button className="icon-btn" aria-label={'Apagar cotação ' + c.loja} disabled={busy} onClick={() => { const prox = { ...it, cotacoes: it.cotacoes.filter(x => x.id !== c.id) }; setIt(prox); onSave(prox, 'Cotação apagada'); }}><Trash2 size={14} /></button>
+        </div>)}
+        <form className="cotacao-nova" onSubmit={addCotacao}>
+          <label><Store size={14} /><input aria-label="Loja" placeholder="Loja (ex.: Amazon, Magalu)" maxLength={80} value={cot.loja} onChange={e => setCot({ ...cot, loja: e.target.value })} /></label>
+          <label>R$<input aria-label="Preço" inputMode="decimal" placeholder="0,00" value={cot.preco} onChange={e => setCot({ ...cot, preco: e.target.value })} /></label>
+          <input aria-label="Link (opcional)" placeholder="Link (opcional)" value={cot.link} onChange={e => setCot({ ...cot, link: e.target.value })} />
+          <button className="primary" disabled={busy}><Plus size={16} /> Anotar cotação</button>
+        </form>
+      </div>}
+      <div className="casa-rodape">
+        <button className="secondary" onClick={() => setEditando(true)}>Editar dados</button>
+        {it.status !== 'temos' && !it.cotacoes.length && <button className="secondary" disabled={busy} onClick={() => onSave(comprei(it), 'Comprado! ' + it.name + ' agora está em Temos').then(ok => ok && setIt(comprei(it)))}>Já compramos</button>}
+        <button className="text-btn perigo-txt" onClick={() => setApagar(true)}><Trash2 size={14} /> Apagar item</button>
+      </div>
+      {apagar && <div className="apagar-confirma"><span>Apagar <b>{it.name}</b> e as fotos dele?</span><div><button className="perigo" disabled={busy} onClick={() => onDelete(it)}>Apagar</button><button className="secondary" onClick={() => setApagar(false)}>Cancelar</button></div></div>}
+    </>}
+    {ver && <div className="casa-visor" onClick={() => setVer('')}><Foto id={ver} className="cheia" /><div className="casa-visor-acoes" onClick={e => e.stopPropagation()}><button className="perigo" disabled={busy} onClick={() => tirarFoto(ver)}><Trash2 size={15} /> Apagar foto</button><button className="secondary" onClick={() => setVer('')}>Fechar</button></div></div>}
+  </section></div>;
+}

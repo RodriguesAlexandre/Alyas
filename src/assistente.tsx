@@ -74,7 +74,7 @@ export default function Assistente({ data, save }: { data: any; save: (d: any, m
   return <>
     {!aberto && !digitando && <button className="ai-fab" aria-label="Abrir assistente" onClick={() => setAberto(true)}><Sparkles size={22} /></button>}
     {aberto && <section className="ai-panel" role="complementary" aria-label="Assistente AleYas">
-      <div className="ai-head"><span className="ai-avatar"><Sparkles size={16} /></span><div><b>Assistente</b><small>{semIA ? 'modo simples · ligue a IA em Nossa casa' : 'ideias e ações na casa'}</small></div>
+      <div className="ai-head"><span className="ai-avatar"><Sparkles size={16} /></span><div><b>Assistente</b><small>{semIA ? 'modo simples · ligue a IA em Ajustes' : 'ideias e ações na casa'}</small></div>
         <button className="icon-btn" title="Fechar" onClick={() => setAberto(false)}><X size={18} /></button></div>
       <div className="ai-msgs">
         {!msgs.length && <div className="ai-hello"><p>Oi! Posso dar ideias de refeições com o que vocês compram, montar o cardápio, colocar coisas na lista e marcar o que está acabando.</p></div>}
