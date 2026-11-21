@@ -243,20 +243,20 @@ export function criarCena(el: HTMLElement): Cena {
     sofa(w, d, h, f) {
       const g = new THREE.Group(); const X = (x: number) => m(x - f.x) - w / 2, Z = (y: number) => m(y - f.y) - d / 2;
       const peca = (x1: number, y1: number, x2: number, y2: number, mat: THREE.Material, y0: number, hh: number, r = .05) => em(g, rb(m(x2 - x1), hh, m(y2 - y1), mat, r), (X(x1) + X(x2)) / 2, y0 + hh / 2, (Z(y1) + Z(y2)) / 2);
-      peca(52, 166, 76, 300, carameloEsc, 0, .2, .03); peca(76, 166, 120, 190, carameloEsc, 0, .2, .03);
-      for (let y = 173; y < 294; y += 24) peca(59.3, y + .3, 75.7, Math.min(y + 24, 294) - .3, caramelo, .2, .2, .07);
-      [[76, 173, 95, 190], [95, 173, 114, 190]].forEach(([a, b, c2, d2]) => peca(a + .3, b + .3, c2 - .3, d2 - .3, caramelo, .2, .2, .07));
-      for (let y = 168; y < 300; y += 26.4) peca(52, y + .2, 59, Math.min(y + 26.4, 300) - .2, carameloEsc, .2, .42, .05);
-      [[59, 166, 80, 173], [80, 166, 100, 173], [100, 166, 120, 173]].forEach(([a, b, c2, d2]) => peca(a + .2, b, c2 - .2, d2, carameloEsc, .2, .42, .05));
-      peca(59, 294, 76, 300, carameloEsc, .2, .22, .04); peca(114, 173, 120, 190, carameloEsc, .2, .22, .04);
+      peca(52, 178, 90, 294, carameloEsc, 0, .2, .03); peca(90, 178, 126, 214, carameloEsc, 0, .2, .03);
+      for (let y = 186; y < 288; y += 25.5) peca(60.3, y + .3, 89.7, Math.min(y + 25.5, 288) - .3, caramelo, .2, .2, .07);
+      [[90, 186, 105, 214], [105, 186, 120, 214]].forEach(([a, b, c2, d2]) => peca(a + .3, b + .3, c2 - .3, d2 - .3, caramelo, .2, .2, .07));
+      for (let y = 180; y < 294; y += 28.5) peca(52, y + .2, 60, Math.min(y + 28.5, 294) - .2, carameloEsc, .2, .42, .05);
+      [[60, 178, 82, 186], [82, 178, 104, 186], [104, 178, 126, 186]].forEach(([a, b, c2, d2]) => peca(a + .2, b, c2 - .2, d2, carameloEsc, .2, .42, .05));
+      peca(60, 288, 90, 294, carameloEsc, .2, .22, .04); peca(120, 186, 126, 214, carameloEsc, .2, .22, .04);
       const alm = (x: number, y: number, c: string, rot: number) => { const a = em(g, rb(.36, .34, .1, M(c, { roughness: .95 }), .05), X(x), .55, Z(y)); a.rotation.set(-.25, rot, 0); };
-      alm(62, 182, '#ece6d6', Math.PI / 2); alm(62, 284, '#7d9a6a', Math.PI / 2); alm(104, 177, '#ece6d6', 0);
-      const manta = em(g, rb(.55, .04, .45, M('#8d96a3', { roughness: 1, map: texTecido('#8d96a3', .2) }), .02), X(68), .44, Z(250)); manta.rotation.y = .5;
-      const mochila = new THREE.Group(); em(mochila, rb(.32, .38, .16, M('#ece4d6', { roughness: 1 }), .06), 0, .19, 0); em(mochila, rb(.24, .03, .17, M('#222'), .01), 0, .38, 0); em(g, mochila, X(106), .4, Z(182));
-      em(g, rb(.16, .02, .05, M('#111'), .01), X(66), .41, Z(262)).rotation.y = .3;
+      alm(63, 196, '#ece6d6', Math.PI / 2); alm(63, 280, '#7d9a6a', Math.PI / 2); alm(112, 190, '#ece6d6', 0);
+      const manta = em(g, rb(.55, .04, .45, M('#8d96a3', { roughness: 1, map: texTecido('#8d96a3', .2) }), .02), X(74), .44, Z(250)); manta.rotation.y = .5;
+      const mochila = new THREE.Group(); em(mochila, rb(.32, .38, .16, M('#ece4d6', { roughness: 1 }), .06), 0, .19, 0); em(mochila, rb(.24, .03, .17, M('#222'), .01), 0, .38, 0); em(g, mochila, X(98), .4, Z(196));
+      em(g, rb(.16, .02, .05, M('#111'), .01), X(72), .41, Z(266)).rotation.y = .3;
       return g;
     },
-    'tapete-sala'(w, d) { const g = new THREE.Group(); em(g, rb(w, .015, d, M('#d9c6a4', { map: texTapete('#d4c09d', '#b9a27d'), roughness: 1 }), .005), 0, .008, 0); return g; },
+    'tapete-sala'(w, d) { const g = new THREE.Group(); em(g, rb(w, .015, d, M('#1c1c1e', { map: texTapete('#1c1c1e', '#2c2c30'), roughness: 1 }), .005), 0, .008, 0); return g; },
     'mesa-centro'(w, d, h) {
       const g = new THREE.Group(); const t = em(g, cil(.5, .5, .035, preto, 40), 0, h - .02, 0); t.scale.set(w, 1, d);
       [0, 2.1, 4.2].forEach(a => { const p = em(g, cil(.014, .01, h, preto, 8), Math.cos(a) * w * .32, h / 2, Math.sin(a) * d * .32); p.rotation.set(Math.sin(a) * .15, 0, -Math.cos(a) * .15); });
