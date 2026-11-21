@@ -43,7 +43,7 @@ export const MOVEIS: Movel[] = [
   { id: 'fogao', nome: 'Fogão', x: 98, y: 22, w: 24, d: 20, h: 0.9 },
   { id: 'microondas', nome: 'Micro-ondas', x: 128, y: 23, w: 18, d: 13, h: 0.3, base: 0.92 },
   { id: 'maquina', nome: 'Máquina de lavar', x: 170, y: 24, w: 24, d: 24, h: 0.95 },
-  { id: 'tanque', nome: 'Tanque', x: 178, y: 74, w: 18, d: 20, h: 0.85, face: '-x' },
+  { id: 'tanque', nome: 'Tanque', x: 175, y: 78, w: 21, d: 19, h: 0.85, face: '-z' },
   { id: 'varal-teto', nome: 'Varal de teto', x: 171, y: 46, w: 25, d: 26, h: 0.05, base: 2.2 },
   { id: 'balcao', nome: 'Bancada da pia e balcão', x: 74, y: 74, w: 94, d: 26, h: 1.0 },
   { id: 'pia-cozinha', nome: 'Pia da cozinha', x: 104, y: 76, w: 34, d: 16, h: 0.35, base: 0.92 },
