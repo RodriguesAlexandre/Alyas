@@ -172,7 +172,10 @@ export function criarCena(el: HTMLElement): Cena {
       const coifa = new THREE.Group(); em(coifa, rb(w + .1, .1, .45, inox, .02), 0, 0, 0); em(coifa, bx(.2, .025, .01, preto), w * .25, -.02, .23); em(g, coifa, 0, 1.6, -d / 2 + .2);
       return g;
     },
-    microondas(w, d, h) { const g = new THREE.Group(); em(g, rb(w, h, d, preto, .015), 0, h / 2, 0); em(g, bx(w * .68, h * .75, .005, vidroEscuro), -w * .12, h / 2, d / 2 + .003); em(g, bx(w * .18, h * .7, .004, M('#333')), w * .36, h / 2, d / 2 + .003); return g; },
+    microondas(w, d, h) { const g = new THREE.Group();
+      const nicho = M('#f6f5f1', { roughness: .45 }); em(g, bx(w + .08, .025, d + .06, nicho), 0, -.0125, -.01); em(g, bx(w + .08, .025, d + .06, nicho), 0, h + .1, -.01);
+      [-1, 1].forEach(sx => em(g, bx(.025, h + .12, d + .06, nicho), sx * (w / 2 + .03), h / 2 + .045, -.01));
+      em(g, rb(w, h, d, preto, .015), 0, h / 2, 0); em(g, bx(w * .68, h * .75, .005, vidroEscuro), -w * .12, h / 2, d / 2 + .003); em(g, bx(w * .18, h * .7, .004, M('#333')), w * .36, h / 2, d / 2 + .003); return g; },
     maquina(w, d, h) {
       const g = new THREE.Group(); em(g, rb(w, h, d, branco, .05), 0, h / 2, 0);
       em(g, cil(w * .38, w * .38, .02, M('#9aa3ab', { roughness: .2, transparent: true, opacity: .85 }), 32), 0, h + .005, .02);
