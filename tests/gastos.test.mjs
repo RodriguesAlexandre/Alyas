@@ -27,3 +27,11 @@ test('filtro por lugar de compra', async () => {
   assert.equal(gastos(data, '1m', hoje, ['Outros']).mesAtual, 20);
   assert.deepEqual(gastos(data, '1m', hoje).lugares.map(l => l.lugar), ['Supermercado', 'Açougue', 'Outros']);
 });
+
+test('filtro por categoria', async () => {
+  const { gastos } = await import('../src/gastos-logic.ts');
+  const hoje = new Date('2026-11-22T12:00:00-03:00');
+  const data = { catalog: [], history: [{ id: 'a', date: '2026-11-20T10:00:00-03:00', total: 100, items: [{ name: 'Arroz', qty: 1, unit: 'un', cat: 'Mercearia', price: 30, lineTotal: 30 }, { name: 'Picanha', qty: 1, unit: 'kg', cat: 'Proteínas', price: 70, lineTotal: 70 }] }] };
+  assert.equal(gastos(data, '1m', hoje, undefined, ['Proteínas']).mesAtual, 70);
+  assert.equal(gastos(data, '1m', hoje, ['Açougue'], ['Proteínas']).mesAtual, 0);
+});

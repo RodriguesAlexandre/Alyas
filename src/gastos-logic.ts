@@ -7,9 +7,9 @@ const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'o
 const chave = (d: Date) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
 const linha = (i: any) => i.lineTotal != null ? i.lineTotal : (i.price != null ? i.price * i.qty : 0);
 
-export function gastos(data: any, periodo: Periodo, hoje = new Date(), lugares: readonly string[] = LUGARES) {
-  const todos = LUGARES.every(l => lugares.includes(l));
-  const ok = (i: any, h: any) => lugares.includes(lugarDe(i, h));
+export function gastos(data: any, periodo: Periodo, hoje = new Date(), lugares: readonly string[] = LUGARES, categorias: readonly string[] | null = null) {
+  const todos = LUGARES.every(l => lugares.includes(l)) && !categorias;
+  const ok = (i: any, h: any) => lugares.includes(lugarDe(i, h)) && (!categorias || categorias.includes(i.cat || 'Outros'));
   const porLugar = new Map<string, number>(LUGARES.map(l => [l, 0]));
   const brutas = (data.history || []).filter((h: any) => !h.archived && h.date && Number.isFinite(Date.parse(h.date)));
   const compras = brutas.map((h: any) => {
@@ -32,7 +32,7 @@ export function gastos(data: any, periodo: Periodo, hoje = new Date(), lugares: 
     }
     if (i.price != null && i.price > 0) { const k = nome + '|' + i.unit; const e = precos.get(k) || { nome, unit: i.unit, lista: [] as { t: number; p: number }[] }; e.lista.push({ t: Date.parse(h.date), p: i.price }); precos.set(k, e); }
   }
-  for (const h of brutas) if (new Date(h.date) >= inicio) for (const i of h.items || []) { const l = lugarDe(i, h); porLugar.set(l, (porLugar.get(l) || 0) + linha(i)); }
+  for (const h of brutas) if (new Date(h.date) >= inicio) for (const i of h.items || []) { if (categorias && !categorias.includes(i.cat || 'Outros')) continue; const l = lugarDe(i, h); porLugar.set(l, (porLugar.get(l) || 0) + linha(i)); }
   const totalPer = [...cats.values()].reduce((a, b) => a + b, 0) || 1;
   const variacoes = [...precos.values()].map(e => { const l = e.lista.sort((a, b) => a.t - b.t); const ult = l[l.length - 1]; const ant = [...l].reverse().find(x => x.t < ult.t && Math.abs(x.p - ult.p) > 0.001); return ant ? { nome: e.nome, unit: e.unit, antes: ant.p, agora: ult.p, pct: (ult.p - ant.p) / ant.p } : null; })
     .filter((v: any) => v && Math.abs(v.pct) <= 1.5).sort((a: any, b: any) => Math.abs(b.pct) - Math.abs(a.pct)) as { nome: string; unit: string; antes: number; agora: number; pct: number }[];
@@ -45,6 +45,7 @@ export function gastos(data: any, periodo: Periodo, hoje = new Date(), lugares: 
     mesAtual: meses[5].total, mesAnterior: meses[4].total, meses,
     ticketMedio: noPeriodo.length ? totalNoPeriodo / noPeriodo.length : 0, porSemana: totalNoPeriodo / semanas,
     categorias: [...cats.entries()].map(([cat, total]) => ({ cat, total, pct: total / totalPer })).sort((a, b) => b.total - a.total),
+    categoriasExistentes: [...new Set(brutas.flatMap((h: any) => (h.items || []).map((i: any) => i.cat || 'Outros')))] as string[],
     lugares: [...porLugar.entries()].map(([lugar, total]) => ({ lugar, total })).filter(l => l.total > 0),
     produtos: [...prods.values()].sort((a, b) => b.total - a.total), variacoes,
   };

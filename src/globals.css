@@ -394,3 +394,4 @@ html.escuro .painel-totais div{background:#272824}html.escuro .painel-totais .to
 .gastos-lugar-resumo{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin:0 0 12px;font-size:13px}.gastos-lugar-resumo b{font-family:Manrope}
 .lugar-tag{font-style:normal;font-size:10px;font-weight:700;margin-left:6px;padding:2px 7px;border-radius:8px;background:#f3e6d8;color:#8a4b22;vertical-align:1px}.lugar-tag.Sacolão{background:#e4efd6;color:#3d6420}.lugar-tag.Açougue{background:#f8dcd6;color:#9a2f22}.lugar-tag.Outros{background:#efe2ec;color:#7a3f6b}
 html.escuro .lugar-tag{filter:brightness(.8)}
+.gastos-catfiltro{margin-top:0}.gastos-catfiltro button i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
