@@ -65,3 +65,10 @@ export function iconeCasa(i: { name: string; cat: string }): string {
   for (const [re, s] of M) if (re.test(k)) return s;
   return ({ 'Utensílios': 'fork-and-knife-with-plate', 'Organização e limpeza': 'broom', 'Eletrônicos': 'laptop', 'Eletroeletrônicos': 'electric-plug', 'Cama, mesa e banho': 'bed', 'Móveis e decoração': 'couch-and-lamp' } as any)[i.cat] || 'package';
 }
+
+/** Tira o redirecionamento do Gmail (google.com/url?q=...) dos links que vêm do radar. */
+export function limparLink(l?: string): string | undefined {
+  if (!l) return l;
+  try { const u = new URL(l); if (/(^|\.)google\.[a-z.]+$/.test(u.hostname) && u.pathname === '/url' && u.searchParams.get('q')) return u.searchParams.get('q')!; } catch {}
+  return l;
+}

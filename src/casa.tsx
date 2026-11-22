@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, Store } from 'lucide-react';
-import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
+import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, limparLink, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
 import { corCat } from './cores';
@@ -183,13 +183,13 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
       {it.radar && it.status !== 'temos' && <div className={'casa-radar ' + (/comprar/i.test(it.radar.decisao) ? 'ok' : /validar/i.test(it.radar.decisao) ? 'warn' : '')}>
         <span><Radar size={16} /> <b>Radar diário · {it.radar.decisao}</b><small>atualizado em {new Date(it.radar.data + 'T12:00').toLocaleDateString('pt-BR')}</small></span>
         {it.radar.titulo && <p>{it.radar.titulo}</p>}
-        <div>{it.radar.link && <a className="secondary" href={it.radar.link} target="_blank" rel="noopener noreferrer">Abrir dashboard <ExternalLink size={13} /></a>}
+        <div>{it.radar.link && <a className="secondary" href={limparLink(it.radar.link)} target="_blank" rel="noopener noreferrer">Abrir dashboard <ExternalLink size={13} /></a>}
           <button className="secondary" disabled={puxando} onClick={async () => { setPuxando(true); setErro(''); try { const r = await puxarRadar(true, onReload); if (r && !r.novo) setErro('O radar ainda não mandou nada mais novo que ' + new Date(it.radar!.data + 'T12:00').toLocaleDateString('pt-BR') + '.'); } catch (e: any) { setErro(e?.message || 'Não consegui ler o e-mail do radar.'); } finally { setPuxando(false); } }}><RefreshCw size={13} /> {puxando ? 'Buscando…' : 'Buscar do e-mail'}</button></div>
       </div>}
       {it.status !== 'temos' && <div className="casa-cotacoes">
         <h3><Tag size={16} /> Cotações {m && <small>melhor: {money(m.preco)} na {m.loja}</small>}</h3>
         {[...it.cotacoes].sort((a, b) => a.preco - b.preco).map(c => <div key={c.id} className={'cotacao' + (m?.id === c.id ? ' melhor' : '')}>
-          <span><b>{c.loja}</b><small>{new Date(c.data).toLocaleDateString('pt-BR')}{c.obs ? ' · ' + c.obs : ''}{c.link && <> · <a href={c.link} target="_blank" rel="noopener noreferrer">abrir <ExternalLink size={11} /></a></>}</small></span>
+          <span><b>{c.loja}</b><small>{new Date(c.data).toLocaleDateString('pt-BR')}{c.obs ? ' · ' + c.obs : ''}{c.link && <> · <a href={limparLink(c.link)} target="_blank" rel="noopener noreferrer">abrir <ExternalLink size={11} /></a></>}</small></span>
           <strong>{money(c.preco)}</strong>
           <button className="secondary" disabled={busy} onClick={() => onSave(comprei(it, c), 'Comprado! ' + it.name + ' agora está em Temos').then(ok => ok && setIt(comprei(it, c)))}>Comprei aqui</button>
           <button className="icon-btn" aria-label={'Apagar cotação ' + c.loja} disabled={busy} onClick={() => { const prox = { ...it, cotacoes: it.cotacoes.filter(x => x.id !== c.id) }; setIt(prox); onSave(prox, 'Cotação apagada'); }}><Trash2 size={14} /></button>

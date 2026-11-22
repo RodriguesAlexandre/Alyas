@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {melhorCotacao,resumoCasa,filtrarCasa,comprei, desfazerCompra,iconeCasa,frenteMeta} from '../src/casa-logic.ts';
+import {melhorCotacao,resumoCasa,filtrarCasa,comprei, desfazerCompra, limparLink,iconeCasa,frenteMeta} from '../src/casa-logic.ts';
 const it=(o)=>({id:o.name,cat:'Eletroeletrônicos',status:'temos',fotos:[],cotacoes:[],criado:'2026-11-20',...o});
 test('cotações, resumo, filtro e compra',()=>{
  const robo=it({name:'Robô aspirador H50 Pro',status:'cotando',cotacoes:[{id:'a',loja:'Amazon',preco:1899,data:''},{id:'b',loja:'Magalu',preco:1749.9,data:''}]});
@@ -20,4 +20,9 @@ test('desfazerCompra volta o item para cotando e limpa a compra feita pela cota�
   const v = desfazerCompra(comprei(item, c));
   assert.equal(v.status, 'cotando'); assert.equal(v.dataCompra, undefined); assert.equal(v.preco, null); assert.equal(v.loja, undefined);
   assert.equal(desfazerCompra(comprei({ ...item, cotacoes: [] })).status, 'queremos');
+});
+
+test('limparLink remove o redirecionamento do Gmail', () => {
+  assert.equal(limparLink('https://www.google.com/url?q=https://www.kabum.com.br/produto/947266&source=gmail&sa=E'), 'https://www.kabum.com.br/produto/947266');
+  assert.equal(limparLink('https://www.magazineluiza.com.br/x/p/1/'), 'https://www.magazineluiza.com.br/x/p/1/');
 });
