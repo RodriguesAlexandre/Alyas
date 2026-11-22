@@ -161,6 +161,7 @@ function tratar(p) {
     case 'aistatus': return { ok: true, ligada: !!PropertiesService.getScriptProperties().getProperty('GEMINI_KEY') };
     case 'setai': return ligarIA(p.gemini);
     case 'nota': return lerNota(p);
+    case 'produto': return lerProduto(p);
     case 'fotoSalvar': return salvarFoto(p);
     case 'foto': return lerFoto(p);
     case 'fotoApagar': return apagarFoto(p);
@@ -365,6 +366,64 @@ function lerNota(p) {
   const n = g.json || {};
   if (!Array.isArray(n.items) || !n.items.length) return falha('Não encontrei itens nessa nota. Tente outra foto, bem de frente e com luz.', 422);
   return { ok: true, nota: n };
+}
+
+
+/** Lê um link de produto (Shopee, Mercado Livre, Amazon, Magalu…): nome, preço, foto e categoria da casa. */
+function lerProduto(p) {
+  const url = String(p.url || '').trim();
+  if (!/^https?:\/\/[^\s]+$/.test(url) || url.length > 2000) return falha('Cole o link completo do produto (começando com https://).', 400);
+  const CATS = ['Cama, mesa e banho', 'Utensílios', 'Organização e limpeza', 'Eletrônicos', 'Móveis e decoração', 'Outros'];
+  const COMODOS = ['Cozinha', 'Sala', 'Quarto', 'Banheiro', 'Área de serviço', 'Escritório', 'Varanda', 'Outro'];
+  const achado = { titulo: '', imagem: '', preco: null, loja: '', descricao: '' };
+  const host = (url.match(/^https?:\/\/([^\/?#]+)/) || [])[1] || '';
+  achado.loja = /shopee/.test(host) ? 'Shopee' : /mercadoli[vb]re|mlstatic/.test(host) ? 'Mercado Livre' : /amazon/.test(host) ? 'Amazon' : /magazineluiza|magalu/.test(host) ? 'Magazine Luiza' : /kabum/.test(host) ? 'KaBuM!' : /casasbahia/.test(host) ? 'Casas Bahia' : /americanas/.test(host) ? 'Americanas' : /aliexpress/.test(host) ? 'AliExpress' : /leroymerlin/.test(host) ? 'Leroy Merlin' : /tokstok/.test(host) ? 'Tok&Stok' : /ikea/.test(host) ? 'IKEA' : host.replace(/^www\./, '');
+  const UA = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36', 'Accept-Language': 'pt-BR,pt;q=0.9' };
+  // Shopee: API pública do item (a página é montada por JavaScript)
+  const sh = url.match(/i\.(\d+)\.(\d+)/) || url.match(/product\/(\d+)\/(\d+)/);
+  if (/shopee/.test(host) && sh) {
+    try {
+      const r = UrlFetchApp.fetch('https://shopee.com.br/api/v4/item/get?shopid=' + sh[1] + '&itemid=' + sh[2], { muteHttpExceptions: true, headers: Object.assign({ 'Referer': url, 'X-Requested-With': 'XMLHttpRequest' }, UA) });
+      if (r.getResponseCode() === 200) { const d = JSON.parse(r.getContentText()).data; if (d) { achado.titulo = d.name || ''; achado.preco = d.price_min ? d.price_min / 100000 : d.price ? d.price / 100000 : null; if (d.image) achado.imagem = 'https://down-br.img.susercontent.com/file/' + d.image; achado.descricao = String(d.description || '').slice(0, 1500); } }
+    } catch (e) {}
+  }
+  // Mercado Livre: API pública do item
+  const ml = url.match(/MLB-?U?-?(\d{6,})/i);
+  if (!achado.titulo && ml && /mercadoli/.test(host) && !/MLBU/i.test(url)) {
+    try { const r = UrlFetchApp.fetch('https://api.mercadolibre.com/items/MLB' + ml[1], { muteHttpExceptions: true }); if (r.getResponseCode() === 200) { const d = JSON.parse(r.getContentText()); achado.titulo = d.title || ''; achado.preco = d.price || null; achado.imagem = (d.pictures && d.pictures[0] && (d.pictures[0].secure_url || d.pictures[0].url)) || d.thumbnail || ''; } } catch (e) {}
+  }
+  // Página: Open Graph, JSON-LD e texto
+  let texto = '';
+  try {
+    const r = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true, headers: UA });
+    if (r.getResponseCode() === 200) {
+      const html = r.getContentText().slice(0, 1500000);
+      const meta = function (k) { const m = html.match(new RegExp('<meta[^>]+(?:property|name|itemprop)=["\']' + k + '["\'][^>]*content=["\']([^"\']+)', 'i')) || html.match(new RegExp('<meta[^>]+content=["\']([^"\']+)["\'][^>]*(?:property|name|itemprop)=["\']' + k + '["\']', 'i')); return m ? m[1] : ''; };
+      if (!achado.titulo) achado.titulo = meta('og:title') || meta('twitter:title') || ((html.match(/<title[^>]*>([^<]+)/i) || [])[1] || '');
+      if (!achado.imagem) achado.imagem = meta('og:image') || meta('twitter:image') || meta('image');
+      if (achado.preco == null) { const pr = meta('product:price:amount') || meta('og:price:amount') || meta('price'); if (pr) achado.preco = Number(String(pr).replace(',', '.')) || null; }
+      const ld = html.match(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi) || [];
+      ld.forEach(function (b) { try { const j = JSON.parse(b.replace(/^<script[^>]*>|<\/script>$/gi, '')); [].concat(j['@graph'] || j).forEach(function (o) { if (o && /Product/i.test(o['@type'])) { if (!achado.titulo) achado.titulo = o.name || ''; if (!achado.imagem) achado.imagem = [].concat(o.image || [])[0] || ''; const of = [].concat(o.offers || [])[0]; if (achado.preco == null && of) achado.preco = Number(of.price || of.lowPrice) || null; } }); } catch (e) {} });
+      if (!achado.descricao) achado.descricao = meta('og:description') || meta('description');
+      texto = html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').slice(0, 6000);
+    }
+  } catch (e) {}
+  achado.titulo = String(achado.titulo || '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s*[|\-–]\s*(Shopee Brasil|Mercado Livre|Amazon\.com\.br|Magazine Luiza|KaBuM!?).*$/i, '').trim();
+  if (!achado.titulo && !texto) return falha('Não consegui abrir esse link (a loja bloqueou a leitura). Cadastre pelo nome e cole o link na cotação.', 422);
+  // IA organiza: nome curto, categoria, cômodo, marca e modelo
+  let ia = {};
+  if (PropertiesService.getScriptProperties().getProperty('GEMINI_KEY')) {
+    const schema = { type: 'OBJECT', properties: { name: { type: 'STRING' }, cat: { type: 'STRING', enum: CATS }, comodo: { type: 'STRING', enum: COMODOS }, marca: { type: 'STRING' }, modelo: { type: 'STRING' }, preco: { type: 'NUMBER' } }, required: ['name', 'cat'] };
+    const g = gemini({ contents: [{ role: 'user', parts: [{ text: 'Produto para a casa de um casal, anunciado em ' + achado.loja + '.\nTítulo: ' + achado.titulo + '\nPreço lido: ' + (achado.preco || 'não encontrado') + '\nDescrição: ' + String(achado.descricao).slice(0, 1500) + '\nTexto da página: ' + texto.slice(0, 4000) + '\n\nDevolva: name (nome curto e claro em português, até 60 letras, sem códigos e sem propaganda), cat (categoria da casa), comodo (onde provavelmente fica), marca, modelo e preco (preço à vista em reais que aparece na página; omita se não tiver certeza). Não invente.' }] }], generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.1 } });
+    if (!g.erro) ia = g.json || {};
+  }
+  // Foto: baixa e devolve em base64 (o app comprime e guarda)
+  let foto = '', mime = '';
+  if (achado.imagem && /^https?:\/\//.test(achado.imagem)) {
+    try { const r = UrlFetchApp.fetch(achado.imagem, { muteHttpExceptions: true, headers: UA }); const b = r.getBlob(); if (r.getResponseCode() === 200 && b.getBytes().length < 4000000 && /image/.test(b.getContentType())) { foto = Utilities.base64Encode(b.getBytes()); mime = b.getContentType(); } } catch (e) {}
+  }
+  const preco = achado.preco != null && achado.preco > 0 ? Math.round(achado.preco * 100) / 100 : (ia.preco > 0 ? Math.round(ia.preco * 100) / 100 : null);
+  return { ok: true, produto: { name: String(ia.name || achado.titulo).slice(0, 80), titulo: achado.titulo.slice(0, 200), cat: CATS.indexOf(ia.cat) >= 0 ? ia.cat : 'Outros', comodo: COMODOS.indexOf(ia.comodo) >= 0 ? ia.comodo : '', marca: String(ia.marca || '').slice(0, 60), modelo: String(ia.modelo || '').slice(0, 60), preco: preco, loja: achado.loja, link: url, foto: foto, mime: mime } };
 }
 
 /** Recebe a chave do Gemini pelo app, testa e guarda nas Propriedades do script (nunca é devolvida). */

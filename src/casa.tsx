@@ -9,7 +9,7 @@ import { Radar, RefreshCw, Box, RotateCcw } from 'lucide-react';
 import Casa3D from './casa3d';
 import { PainelCasa } from './casa-painel';
 import { ondeAviso, rotuloTipo, type Aviso } from './avisos';
-import { Wrench, Check as Ok } from 'lucide-react';
+import { Wrench, Check as Ok, Link2, Loader2 } from 'lucide-react';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').replace(',', '.')); return Number.isFinite(v) && v >= 0 ? v : NaN; };
@@ -114,6 +114,25 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
   const [enviando, setEnviando] = useState(0), [erro, setErro] = useState(''), [ver, setVer] = useState(''), [apagar, setApagar] = useState(false);
   const [cot, setCot] = useState({ loja: '', preco: '', link: '' });
   const [puxando, setPuxando] = useState(false);
+  const [link, setLink] = useState(''), [lendoLink, setLendoLink] = useState(false), [formKey, setFormKey] = useState(0), [achou, setAchou] = useState('');
+  async function buscarLink() {
+    const u = link.trim(); if (!/^https?:\/\//.test(u)) { setErro('Cole o link completo do produto (começando com https://).'); return; }
+    setLendoLink(true); setErro(''); setAchou('');
+    try {
+      const p = await api.lerProduto(u);
+      let fotos = it.fotos;
+      if (p.foto && fotos.length < 12) {
+        try { const bin = Uint8Array.from(atob(p.foto), c => c.charCodeAt(0)); const f = new File([bin], 'produto.' + (p.mime.split('/')[1] || 'jpg'), { type: p.mime || 'image/jpeg' }); setEnviando(1); fotos = [...fotos, await enviarFoto(f)]; } catch {} finally { setEnviando(0); }
+      }
+      const temos = it.status === 'temos';
+      const cotacoes = !temos && p.preco ? [...it.cotacoes.filter(c => c.link !== u), { id: 'c-' + Date.now().toString(36), loja: p.loja, preco: p.preco, link: u, data: new Date().toISOString(), obs: 'lido do link' }] : it.cotacoes;
+      setIt({ ...it, name: p.name || it.name, cat: (CATS_CASA as readonly string[]).includes(p.cat) ? p.cat as any : it.cat, comodo: p.comodo || it.comodo, marca: p.marca || it.marca, modelo: p.modelo || it.modelo,
+        ...(temos ? { preco: p.preco ?? it.preco, loja: p.loja || it.loja, note: [it.note, u].filter(Boolean).join('\n').slice(0, 1000) } : { status: it.status === 'queremos' && p.preco ? 'cotando' : it.status }), fotos, cotacoes });
+      setFormKey(k => k + 1); setLink('');
+      setAchou([p.preco ? 'Preço ' + p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + (temos ? '' : ' (virou cotação)') : 'Preço não encontrado', p.foto ? 'foto adicionada' : 'sem foto', 'categoria ' + p.cat].join(' · ') + '. Confira e salve.');
+    } catch (e: any) { setErro(e?.message || 'Não consegui ler esse link.'); }
+    finally { setLendoLink(false); }
+  }
   const cam = useRef<HTMLInputElement>(null), gal = useRef<HTMLInputElement>(null);
   const salvoNoApp = !!inicial;
   const m = melhorCotacao(it);
@@ -170,7 +189,13 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
     </div>
     {erro && <p className="alert" role="alert">{erro}</p>}
 
-    {editando ? <form onSubmit={salvarForm} className="casa-form">
+    {editando && <div className="casa-link">
+      <label><Link2 size={15} /> Tem o link do produto? <small>Shopee, Mercado Livre, Amazon, Magalu…</small></label>
+      <div><input aria-label="Link do produto" inputMode="url" placeholder="Cole o link aqui" value={link} onChange={e => setLink(e.target.value)} onPaste={e => { const t = e.clipboardData.getData('text'); if (/^https?:\/\//.test(t.trim())) setTimeout(() => setLink(t.trim()), 0); }} />
+        <button type="button" className="primary" disabled={lendoLink || !link.trim()} onClick={buscarLink}>{lendoLink ? <Loader2 size={16} className="spin" /> : null} {lendoLink ? 'Lendo…' : 'Buscar'}</button></div>
+      {achou && <p className="casa-link-ok"><Check size={14} /> {achou}</p>}
+    </div>}
+    {editando ? <form key={formKey} onSubmit={salvarForm} className="casa-form">
       <label>Nome<input name="name" required maxLength={80} defaultValue={it.name} placeholder="Ex.: Robô aspirador, jogo de pratos" autoFocus={!salvoNoApp} /></label>
       <div className="form-grid">
         <label>Categoria<select name="cat" defaultValue={it.cat}>{CATS_CASA.map(c => <option key={c}>{c}</option>)}</select></label>

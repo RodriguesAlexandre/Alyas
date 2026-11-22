@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { TrendingUp, TrendingDown, Receipt, ShoppingCart, CalendarRange } from 'lucide-react';
+import { TrendingUp, TrendingDown, Receipt, ShoppingCart, CalendarRange, ChevronDown } from 'lucide-react';
 import { gastos, type Periodo } from './gastos-logic';
 import { LUGARES } from './lugar';
 
@@ -12,16 +12,11 @@ export default function Gastos({ data, compacto = false }: { data: any; compacto
   const [periodo, setPeriodo] = useState<Periodo>('3m');
   const [lugares, setLugares] = useState<string[]>([...LUGARES]);
   const todosL = lugares.length === LUGARES.length;
-  const alterna = (l: string) => setLugares(v => todosL ? [l] : v.includes(l) ? (v.length > 1 ? v.filter(x => x !== l) : [...LUGARES]) : [...v, l]);
-  const [cats, setCats] = useState<string[] | null>(null);
-  const alternaCat = (c: string) => setCats(v => !v ? [c] : v.includes(c) ? (v.length > 1 ? v.filter(x => x !== c) : null) : [...v, c]);
-  const g = useMemo(() => gastos(data, periodo, new Date(), lugares, cats), [data, periodo, lugares, cats]);
+    const [cats, setCats] = useState<string[] | null>(null);
+    const g = useMemo(() => gastos(data, periodo, new Date(), lugares, cats), [data, periodo, lugares, cats]);
   const todos = todosL && !cats;
-  const ordemCats = Object.keys(CORES).filter(c => g.categoriasExistentes.includes(c)).concat(g.categoriasExistentes.filter(c => !(c in CORES)));
-  const filtros = <div className="chips gastos-lugares" role="group" aria-label="Filtrar por lugar de compra">
-    <button className={todosL ? 'selected' : ''} aria-pressed={todosL} onClick={() => setLugares([...LUGARES])}>Tudo</button>
-    {LUGARES.map(l => <button key={l} className={!todosL && lugares.includes(l) ? 'selected' : ''} aria-pressed={!todosL && lugares.includes(l)} onClick={() => alterna(l)}>{!todosL && lugares.includes(l) ? '✓ ' : ''}{l}</button>)}
-  </div>;
+  const ordemCats = Object.keys(CORES).concat(g.categoriasExistentes.filter(c => !(c in CORES)));
+  const filtros = null;
   if (!g.compras && todos) return <section className="card gastos"><span className="eyebrow">GASTOS DA CASA</span><h2>Seu painel de gastos</h2><p className="muted">Assim que vocês concluírem compras ou importarem notas, os gastos aparecem aqui por mês e por categoria.</p></section>;
   const maxMes = Math.max(...g.meses.map(m => m.total), 1);
   const maxCat = Math.max(...g.categorias.map(c => c.total), 1);
@@ -29,10 +24,9 @@ export default function Gastos({ data, compacto = false }: { data: any; compacto
   return <section className="card gastos">
     <div className="section-title"><div><span className="eyebrow">GASTOS DA CASA</span><h2>Para onde vai o dinheiro</h2></div>
       {!compacto && <div className="chips gastos-periodo">{([['1m', 'Este mês'], ['3m', '3 meses'], ['tudo', 'Tudo']] as [Periodo, string][]).map(([v, l]) => <button key={v} className={periodo === v ? 'selected' : ''} onClick={() => setPeriodo(v)}>{l}</button>)}</div>}</div>
-    {filtros}
-    <div className="chips gastos-lugares gastos-catfiltro" role="group" aria-label="Filtrar por categoria">
-      <button className={!cats ? 'selected' : ''} aria-pressed={!cats} onClick={() => setCats(null)}>Todas as categorias</button>
-      {ordemCats.map(c => <button key={c} aria-pressed={!!cats?.includes(c)} className={cats?.includes(c) ? 'selected' : ''} onClick={() => alternaCat(c)}><i style={{ background: CORES[c] || '#999' }} />{cats?.includes(c) ? '✓ ' : ''}{c}</button>)}
+    <div className="gastos-filtros">
+      <Multi rotulo="Lugar" todosRotulo="Todos os lugares" opcoes={[...LUGARES]} marcados={todosL ? null : lugares} onMudar={v => setLugares(v ? v : [...LUGARES])} />
+      <Multi rotulo="Categoria" todosRotulo="Todas as categorias" opcoes={ordemCats} cores={CORES} marcados={cats} onMudar={setCats} />
     </div>
     {!todos && <p className="muted gastos-filtro-nota">Mostrando só: {[lugares.length < LUGARES.length ? lugares.join(' + ') : '', cats ? cats.join(' + ') : ''].filter(Boolean).join(' · ')}. Toque em Tudo e em Todas as categorias para ver o gasto total.</p>}
     {lugares.length === LUGARES.length && g.lugares.length > 1 && <div className="gastos-lugar-resumo">{g.lugares.map(l => <span key={l.lugar}><b>{money0(l.total)}</b> {l.lugar}</span>)}<small className="muted">{g.rotuloPeriodo}</small></div>}
@@ -58,4 +52,20 @@ export default function Gastos({ data, compacto = false }: { data: any; compacto
       <div><h3 className="gastos-h3">Preços que mudaram</h3>{g.variacoes.length ? <ul className="gastos-var">{g.variacoes.slice(0, 8).map(v => <li key={v.nome + v.unit}><span>{v.nome}<small>{money(v.antes)} → {money(v.agora)} /{v.unit}</small></span><b className={v.pct > 0 ? 'up' : 'down'}>{v.pct > 0 ? '+' : ''}{Math.round(v.pct * 100)}%</b></li>)}</ul> : <p className="muted">Ainda não há preços repetidos para comparar.</p>}</div>
     </div>}
   </section>;
+}
+
+/** Lista suspensa com caixas de marcar (várias opções ao mesmo tempo). */
+function Multi({ rotulo, todosRotulo, opcoes, marcados, onMudar, cores }: { rotulo: string; todosRotulo: string; opcoes: string[]; marcados: string[] | null; onMudar: (v: string[] | null) => void; cores?: Record<string, string> }) {
+  const [aberto, setAberto] = useState(false);
+  const resumo = !marcados ? todosRotulo : marcados.length === 1 ? marcados[0] : marcados.length + ' selecionados';
+  const alterna = (o: string) => { const atual = marcados || []; const prox = atual.includes(o) ? atual.filter(x => x !== o) : [...atual, o]; onMudar(!prox.length || prox.length === opcoes.length ? null : prox); };
+  return <div className={'multi' + (aberto ? ' aberto' : '') + (marcados ? ' ativo' : '')}>
+    <button type="button" className="multi-botao" aria-expanded={aberto} onClick={() => setAberto(!aberto)}><small>{rotulo}</small><span>{resumo}</span><ChevronDown size={16} /></button>
+    {aberto && <><div className="multi-fundo" onClick={() => setAberto(false)} />
+      <div className="multi-painel" role="listbox" aria-multiselectable="true">
+        <label className="multi-op todos"><input type="checkbox" checked={!marcados} onChange={() => onMudar(null)} /> {todosRotulo}</label>
+        {opcoes.map(o => <label key={o} className="multi-op"><input type="checkbox" checked={!!marcados?.includes(o)} onChange={() => alterna(o)} />{cores && <i style={{ background: cores[o] || '#999' }} />}{o}</label>)}
+        <button type="button" className="primary multi-ok" onClick={() => setAberto(false)}>Pronto</button>
+      </div></>}
+  </div>;
 }
