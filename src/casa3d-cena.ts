@@ -9,7 +9,7 @@ export type Fantasma = { id: string; x: number; z: number; l: number; p: number;
 export type Cena = {
   focar: (id: string | null) => void; selecionar: (id: string | null) => void; topo: (id: string) => { x: number; y: number; z: number } | null;
   onToque: (fn: (t: { movel?: string; x: number; y: number }) => void) => void; modo: (planta: boolean) => void;
-  paredes: (altas: boolean) => void; fantasmas: (f: Fantasma[]) => void;
+  paredes: (altas: boolean) => void; paisagem: (on: boolean) => void; vistaVaranda: () => void; fantasmas: (f: Fantasma[]) => void;
   projetar: (x: number, y: number, z: number) => { x: number; y: number; ok: boolean } | null; onMudou: (fn: () => void) => void; destruir: () => void;
 };
 
@@ -80,7 +80,7 @@ export function criarCena(el: HTMLElement): Cena {
   el.appendChild(renderer.domElement);
   const scene = new THREE.Scene();
   const pmrem = new THREE.PMREMGenerator(renderer); scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; scene.environmentIntensity = 0.55;
-  const persp = new THREE.PerspectiveCamera(32, 1, 0.1, 120);
+  const persp = new THREE.PerspectiveCamera(32, 1, 0.1, 2500);
   const orto = new THREE.OrthographicCamera(-5, 5, 5, -5, 0.1, 100);
   let cam: THREE.Camera = persp;
   const ctl3d = new OrbitControls(persp, renderer.domElement);
@@ -462,6 +462,87 @@ export function criarCena(el: HTMLElement): Cena {
   porId.get('cortina-sala')?.forEach(me => cortaveis.push(me.material as THREE.Material));
   // luzes quentes dos abajures e da sala
 
+  // ---------- paisagem: prédio, condomínio, cidade e Serra do Curral (opcional) ----------
+  const paisagem = new THREE.Group(); paisagem.visible = false; scene.add(paisagem);
+  let paisagemFeita = false;
+  const ceu = tela(4, 256, c => { const g = c.createLinearGradient(0, 0, 0, 256); g.addColorStop(0, '#5f97d6'); g.addColorStop(.55, '#a9c9ec'); g.addColorStop(1, '#e9eef0'); c.fillStyle = g; c.fillRect(0, 0, 4, 256); });
+  const ANDAR = 2.8, SOLO = -ANDAR * 4 - .18; // apê no 5º pavimento (4 andares abaixo)
+  function montarPaisagem() {
+    if (paisagemFeita) return; paisagemFeita = true;
+    const rnd = (() => { let x = 7; return () => (x = (x * 16807) % 2147483647) / 2147483647; })();
+    const solo = new THREE.Mesh(new THREE.CircleGeometry(1400, 64).rotateX(-Math.PI / 2), M('#8a9a6a', { roughness: 1 })); solo.position.y = SOLO - .05; paisagem.add(solo);
+    // estacionamento e gramado do condomínio
+    const asfalto = new THREE.Mesh(new THREE.PlaneGeometry(26, 34).rotateX(-Math.PI / 2), M('#c9b9a3', { roughness: 1 })); asfalto.position.set(CENTRO.x + 3, SOLO, CENTRO.z + 24); asfalto.receiveShadow = true; paisagem.add(asfalto);
+    for (let i = 0; i < 9; i++) { const v = new THREE.Mesh(new THREE.PlaneGeometry(.08, 4.6).rotateX(-Math.PI / 2), M('#e7c84b')); v.position.set(CENTRO.x - 6 + i * 2.6, SOLO + .01, CENTRO.z + 15); paisagem.add(v); }
+    const coresCarro = ['#d8d8d8', '#f2f2f2', '#9aa1a8', '#b3262b', '#2b2f36', '#c9ccd0'];
+    for (let i = 0; i < 14; i++) { const c = rb(1.8, 1.3, 4.2, M(coresCarro[i % 6], { metalness: .4, roughness: .35 }), .35); c.position.set(CENTRO.x - 6 + (i % 7) * 2.6 + (i > 6 ? 0 : 0), SOLO + .65, CENTRO.z + 15 + (i > 6 ? 9 : 0)); c.castShadow = true; paisagem.add(c); }
+    // prédio onde fica o apê (fachada com janelas e varandas)
+    const fach = M('#eeeeea', { roughness: .9 }), cinza = M('#c4c6c4', { roughness: .9 });
+    const bloco = (x: number, z: number, w: number, d: number, andares: number, rot = 0, comVaranda = true) => {
+      const g = new THREE.Group(); const h = andares * ANDAR;
+      em(g, bx(w, h, d, fach), 0, h / 2, 0); em(g, bx(w + .1, ANDAR * 1.3, d + .1, cinza), 0, ANDAR * .65, 0);
+      em(g, bx(w * .3, 2.2, d * .5, cinza), 0, h + 1.1, 0);
+      for (let a = 0; a < andares; a++) for (let k = 0; k < Math.floor(w / 3.2); k++) {
+        const x = -w / 2 + 1.6 + k * 3.2, y = a * ANDAR + 1.5;
+        em(g, bx(1.2, 1.1, .05, M('#55606b', { roughness: .2, metalness: .3 })), x, y, d / 2 + .02);
+        em(g, bx(1.2, 1.1, .05, M('#55606b', { roughness: .2, metalness: .3 })), x, y, -d / 2 - .02);
+        if (comVaranda && k % 2 === 0 && a > 0) { em(g, bx(2.4, .08, 1, fach), x, a * ANDAR, d / 2 + .5); em(g, bx(2.4, 1, .04, M('#f4f4f2', { transparent: true, opacity: .55 })), x, a * ANDAR + .5, d / 2 + 1); }
+      }
+      g.position.set(x, SOLO, z); g.rotation.y = rot; g.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } }); paisagem.add(g); return g;
+    };
+    // a torre do apê: corpo abaixo do apartamento
+    const baseApe = bx(mx(332) - mx(46) + .2, -SOLO, mz(350) - mz(16) + .2, fach); baseApe.position.set((mx(46) + mx(332)) / 2, SOLO / 2 - .09, (mz(16) + mz(350)) / 2); baseApe.receiveShadow = true; paisagem.add(baseApe);
+    for (let a = 0; a < 4; a++) { const fx = bx(mx(332) - mx(46) + .25, .12, .05, cinza); fx.position.set((mx(46) + mx(332)) / 2, SOLO + (a + 1) * ANDAR, mz(350) + .12); paisagem.add(fx); }
+    // vizinhos do condomínio (5 pavimentos)
+    bloco(CENTRO.x - 21, CENTRO.z + 32, 24, 11, 5, Math.PI / 2); bloco(CENTRO.x - 22, CENTRO.z + 8, 20, 11, 5, Math.PI / 2);
+    bloco(CENTRO.x + 26, CENTRO.z - 6, 20, 11, 5, -Math.PI / 2); bloco(CENTRO.x - 4, CENTRO.z - 26, 22, 11, 5, Math.PI);
+    // muro e árvores do condomínio
+    const muro = bx(70, 2.2, .2, M('#d9d6cf')); muro.position.set(CENTRO.x, SOLO + 1.1, CENTRO.z + 44); paisagem.add(muro);
+    const copa = M('#4f7d36', { roughness: 1 }), copa2 = M('#6b9a43', { roughness: 1 }), tronco = M('#6d4c35');
+    const arvore = (x: number, z: number, esc = 1) => { const g = new THREE.Group(); em(g, cil(.15 * esc, .2 * esc, 2.5 * esc, tronco, 6), 0, 1.25 * esc, 0); em(g, esf(1.6 * esc, rnd() > .5 ? copa : copa2, 8), 0, 3.2 * esc, 0); g.position.set(x, SOLO, z); paisagem.add(g); };
+    for (let i = 0; i < 26; i++) arvore(CENTRO.x - 34 + i * 2.8, CENTRO.z + 47 + rnd() * 3, .8 + rnd() * .6);
+    for (let i = 0; i < 10; i++) arvore(CENTRO.x - 30 + rnd() * 10, CENTRO.z - 30 + rnd() * 60, .9 + rnd() * .5);
+    // casas do bairro e cidade (instanciadas), mais densas na direção da varanda (sul)
+    const casaGeo = new THREE.BoxGeometry(1, 1, 1); const nCasas = 700, nPredios = 300;
+    const casas = new THREE.InstancedMesh(casaGeo, M('#f1ece2', { roughness: 1 }), nCasas), telhados = new THREE.InstancedMesh(casaGeo, M('#b4593a', { roughness: 1 }), nCasas);
+    const predios = new THREE.InstancedMesh(casaGeo, M('#e3e2de', { roughness: .9 }), nPredios);
+    const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), v = new THREE.Vector3(), sc = new THREE.Vector3(); const corPred = new THREE.Color();
+    for (let i = 0; i < nCasas; i++) {
+      const ang = (rnd() - .5) * Math.PI * 1.7 + (rnd() > .25 ? 0 : Math.PI), r = 60 + rnd() * 340, x = CENTRO.x + Math.sin(ang) * r, z = CENTRO.z + Math.cos(ang) * r;
+      const w = 5 + rnd() * 5, d = 5 + rnd() * 6, h = 3 + Math.floor(rnd() * 3) * 2.8, ry = rnd() * Math.PI;
+      q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), ry); m4.compose(v.set(x, SOLO - 6 + r * .02 + h / 2, z), q, sc.set(w, h, d)); casas.setMatrixAt(i, m4);
+      m4.compose(v.set(x, SOLO - 6 + r * .02 + h + .25, z), q, sc.set(w + .6, .5, d + .6)); telhados.setMatrixAt(i, m4);
+    }
+    for (let i = 0; i < nPredios; i++) {
+      const ang = (rnd() - .5) * Math.PI * .9, r = 300 + rnd() * 900, x = CENTRO.x + Math.sin(ang) * r, z = CENTRO.z + Math.cos(ang) * r;
+      const w = 12 + rnd() * 14, h = 12 + rnd() * (r > 700 ? 55 : 30);
+      m4.compose(v.set(x, SOLO - 8 + h / 2 + r * .01, z), q.identity(), sc.set(w, h, w * (.7 + rnd() * .6))); predios.setMatrixAt(i, m4);
+      const t = .82 + rnd() * .15; predios.setColorAt(i, corPred.setRGB(t, t * (.97 + rnd() * .04), t * .96));
+    }
+    [casas, telhados, predios].forEach(im => { im.instanceMatrix.needsUpdate = true; if (im.instanceColor) im.instanceColor.needsUpdate = true; paisagem.add(im); });
+    // morros com vegetação no meio do caminho
+    for (let i = 0; i < 16; i++) { const ang = (rnd() - .5) * Math.PI * 1.6, r = 140 + rnd() * 250; const mo = new THREE.Mesh(new THREE.SphereGeometry(30 + rnd() * 40, 12, 8), M(rnd() > .5 ? '#5f7f45' : '#6f8c4f', { roughness: 1 })); mo.scale.y = .25; mo.position.set(CENTRO.x + Math.sin(ang) * r, SOLO - 6, CENTRO.z + Math.cos(ang) * r); paisagem.add(mo); }
+    // Serra do Curral: cordilheira ao fundo, na direção da varanda
+    const serra = (dist: number, alt: number, cor: string, fase: number) => {
+      const n = 160, larg = 2600, geo = new THREE.BufferGeometry(); const pos: number[] = [], idx: number[] = [];
+      for (let i = 0; i <= n; i++) {
+        const x = -larg / 2 + i * larg / n, t = i / n;
+        const y = alt * (.55 + .25 * Math.sin(t * 9 + fase) + .12 * Math.sin(t * 23 + fase * 2) + .08 * Math.sin(t * 57)) * (1 - Math.pow(Math.abs(t - .5) * 1.6, 3));
+        pos.push(x, SOLO - 20, 0, x, SOLO + Math.max(10, y), -12);
+        if (i < n) { const a = i * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
+      }
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+      const me = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: cor, roughness: 1, side: THREE.DoubleSide })); me.position.set(CENTRO.x, 0, CENTRO.z + dist); paisagem.add(me);
+    };
+    serra(1700, 330, '#7189a6', .3); serra(1350, 170, '#82977a', 1.7);
+  }
+  let comPaisagem = false;
+  const aplicarPaisagem = () => {
+    const on = comPaisagem && !planta2d; paisagem.visible = on; chao.visible = !on;
+    scene.background = on ? ceu : null; scene.fog = on ? new THREE.Fog('#dfe7ee', 260, 2300) : null;
+    ctl3d.maxPolarAngle = on ? 1.56 : 1.35; ctl3d.maxDistance = on ? 60 : 30;
+    renderer.shadowMap.needsUpdate = true;
+  };
   const grupoF = new THREE.Group(); scene.add(grupoF);
   const fantMat = new THREE.MeshStandardMaterial({ color: '#e0962e', transparent: true, opacity: 0.38 });
   const borda = new THREE.LineBasicMaterial({ color: '#c47a12' });
@@ -536,9 +617,14 @@ export function criarCena(el: HTMLElement): Cena {
     onToque(fn) { onToque = fn; },
     modo(p) {
       planta2d = p; alvo = null; cam = p ? orto : persp; controls = p ? ctl2d : ctl3d; ctl2d.enabled = p; ctl3d.enabled = !p;
-      sol.castShadow = !p; aplicarParedes(); renderer.shadowMap.needsUpdate = true; pedir();
+      sol.castShadow = !p; aplicarParedes(); aplicarPaisagem(); renderer.shadowMap.needsUpdate = true; pedir();
     },
     paredes(a) { altas = a; aplicarParedes(); renderer.shadowMap.needsUpdate = true; pedir(); },
+    paisagem(on) { comPaisagem = on; if (on) montarPaisagem(); aplicarPaisagem(); pedir(); },
+    vistaVaranda() {
+      if (planta2d) return; if (!comPaisagem) { comPaisagem = true; montarPaisagem(); aplicarPaisagem(); }
+      const p = new THREE.Vector3(mx(110), 1.6, mz(316)); alvo = { t: p.clone().add(new THREE.Vector3(.3, .45, 4)), p };
+    },
     fantasmas(lista) {
       grupoF.clear();
       lista.forEach(f => {

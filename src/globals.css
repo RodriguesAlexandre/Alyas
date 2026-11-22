@@ -356,3 +356,4 @@ html.escuro .c3d-props div{background:#1e1f1c}html.escuro .c3d-modo button.on{ba
 .c3d-palco.compacto .c3d-aviso span{font-size:0;gap:0;padding:5px;border-radius:50%;border:2px solid #fff}.c3d-palco.compacto .c3d-aviso span svg{width:13px;height:13px}
 .c3d-palco.compacto .c3d-pino:after,.c3d-palco.compacto .c3d-aviso:after{height:6px}
 .c3d-props div:last-child:nth-child(odd){grid-column:1/-1}
+.c3d-acoes .secondary.ativo{background:#e3eedb;border-color:#9cbf86;color:#24451f}html.escuro .c3d-acoes .secondary.ativo{background:#2c3a26;color:#d8ecc8}

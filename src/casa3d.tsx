@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Layers, Home, Loader2, Box, Map as Mapa, Plus, Check, Trash2, Wrench, Bell, ShoppingBag, RotateCcw } from 'lucide-react';
+import { X, Layers, Home, Loader2, Box, Map as Mapa, Plus, Check, Trash2, Wrench, Bell, ShoppingBag, RotateCcw, Mountain, Eye } from 'lucide-react';
 import { COMODOS_PLANTA, MOVEIS, PROPS, comodoDoItem, mx, mz, nomeMovel, salaDoPonto, salaDoMovel, medidasMovel, areaComodo } from './planta';
 import type { ItemCasa } from './casa-logic';
 import type { Cena } from './casa3d-cena';
@@ -33,6 +33,7 @@ export default function Casa3D({ itens, avisos, inicial, onFechar, onAbrir, onSa
 }) {
   const palco = useRef<HTMLDivElement>(null), cena = useRef<Cena | null>(null), pinosEl = useRef<HTMLDivElement>(null), rotulosEl = useRef<HTMLDivElement>(null), avisosEl = useRef<HTMLDivElement>(null);
   const [pronto, setPronto] = useState(false), [erro, setErro] = useState(''), [altas, setAltas] = useState(true), [sala, setSala] = useState<string | null>(null);
+  const [paisagem, setPaisagem] = useState(() => { try { return localStorage.getItem('aleyas-3d-paisagem') === '1'; } catch { return false; } });
   const [planta, setPlanta] = useState(false), [filtro, setFiltro] = useState<'todos' | 'quero' | 'temos' | 'nenhum'>('todos');
   const [aba, setAba] = useState<'props' | 'avisos'>('avisos'), [sel, setSel_] = useState<Sel>(inicial || null), [texto, setTexto] = useState(''), [tipo, setTipo] = useState<TipoAviso>('manutencao'), [salvando, setSalvando] = useState(false);
   const setSel = (s: Sel) => { setSel_(s); if (s) setAba(avisosDe(avisos, s).some(a => !a.feito) ? 'avisos' : 'props'); };
@@ -47,6 +48,7 @@ export default function Casa3D({ itens, avisos, inicial, onFechar, onAbrir, onSa
       if (!vivo || !palco.current) return;
       try {
         const c = criarCena(palco.current); cena.current = c; setPronto(true);
+        try { if (localStorage.getItem('aleyas-3d-paisagem') === '1') c.paisagem(true); } catch {}
         c.onToque(t => { const s: Sel = t.movel ? { movel: t.movel } : { sala: salaDoPonto(t.x, t.y)?.id }; if (s.movel || s.sala) setSel(s); });
         if (inicial) { const r = inicial.movel ? salaDoMovel(inicial.movel)?.id : inicial.sala; if (r) setTimeout(() => c.focar(r), 50); }
       } catch (e) { setErro('Este aparelho não conseguiu abrir o 3D.'); }
@@ -148,6 +150,8 @@ export default function Casa3D({ itens, avisos, inicial, onFechar, onAbrir, onSa
       <div className="c3d-acoes">
         <div className="chips">{([['todos', 'Itens'], ['quero', 'Queremos'], ['temos', 'Temos'], ['nenhum', 'Só avisos']] as const).map(([k, t]) => <button key={k} className={filtro === k ? 'selected' : ''} onClick={() => setFiltro(k)}>{t}</button>)}</div>
         {!planta && <button className="secondary" onClick={() => { setAltas(!altas); cena.current?.paredes(!altas); }}><Layers size={16} /> {altas ? 'Paredes baixas' : 'Paredes altas'}</button>}
+        {!planta && <button className={'secondary' + (paisagem ? ' ativo' : '')} aria-pressed={paisagem} onClick={() => { const v = !paisagem; setPaisagem(v); cena.current?.paisagem(v); try { localStorage.setItem('aleyas-3d-paisagem', v ? '1' : '0'); } catch {} }}><Mountain size={16} /> Paisagem {paisagem ? 'ligada' : 'desligada'}</button>}
+        {!planta && <button className="secondary" onClick={() => { setPaisagem(true); try { localStorage.setItem('aleyas-3d-paisagem', '1'); } catch {} cena.current?.vistaVaranda(); }}><Eye size={16} /> Vista da varanda</button>}
       </div>
       <p className="c3d-legenda"><i className="aviso" /> {pendentes.length} {pendentes.length === 1 ? 'aviso' : 'avisos'} <i className="quero" /> queremos <i className="temos" /> temos{semComodo ? ` · ${semComodo} sem cômodo` : ''}. Toque em qualquer objeto para anotar um aviso.</p>
     </div>}
