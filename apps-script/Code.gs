@@ -482,7 +482,7 @@ function importarRadar() {
     let idx = casa.findIndex(function (i) { return chave(i.name) === k || chave(i.modelo) === k; });
     if (idx < 0) {
       if (!ofertas.length) return;
-      casa.push({ id: 'casa-radar-' + k, name: ('Robô aspirador ' + String(mo.modelo).replace(/^rob[oô] aspirador\s*/i, '')).slice(0, 80), cat: 'Eletroeletrônicos', status: 'cotando', fotos: [], cotacoes: [], criado: new Date().toISOString(), note: 'Acompanhado pelo radar diário.' });
+      casa.push({ id: 'casa-radar-' + k, name: ('Robô aspirador ' + String(mo.modelo).replace(/^rob[oô] aspirador\s*/i, '')).slice(0, 80), cat: 'Eletrônicos', status: 'cotando', fotos: [], cotacoes: [], criado: new Date().toISOString(), note: 'Acompanhado pelo radar diário.' });
       idx = casa.length - 1;
     }
     const item = Object.assign({}, casa[idx]);

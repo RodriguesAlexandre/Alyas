@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, Store } from 'lucide-react';
-import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, limparLink, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
+import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, limparLink, normalizarCasa, painelCasa, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
 import { corCat } from './cores';
 import { api } from './api';
 import { Radar, RefreshCw, Box, RotateCcw } from 'lucide-react';
 import Casa3D from './casa3d';
+import { PainelCasa } from './casa-painel';
 import { ondeAviso, rotuloTipo, type Aviso } from './avisos';
 import { Wrench, Check as Ok } from 'lucide-react';
 
@@ -15,6 +16,22 @@ const num = (s: string) => { const v = Number(String(s).replace(/\./g, '').repla
 const LABEL: Record<string, string> = { temos: 'Já temos', cotando: 'Cotando', queremos: 'Queremos' };
 const PRIOR: Record<string, string> = { alta: 'Prioridade alta', media: 'Prioridade média', baixa: 'Sem pressa' };
 
+/** Carrossel de fotos no estilo do Instagram: arrasta para o lado, com bolinhas e contador. */
+function Carrossel({ fotos, enviando, inicio = 0, cheio, onAbrir, onMudou }: { fotos: string[]; enviando: number; inicio?: number; cheio?: boolean; onAbrir?: (id: string) => void; onMudou?: (id: string) => void }) {
+  const ref = useRef<HTMLDivElement>(null); const [i, setI] = useState(Math.max(0, inicio)); const total = fotos.length + enviando;
+  useEffect(() => { const el = ref.current; if (el && inicio > 0) el.scrollLeft = inicio * el.clientWidth; }, []);
+  const ir = (k: number) => { const el = ref.current; if (el) el.scrollTo({ left: Math.max(0, Math.min(total - 1, k)) * el.clientWidth, behavior: 'smooth' }); };
+  return <div className={'carrossel' + (cheio ? ' cheio' : '')}>
+    <div className="carrossel-trilho" ref={ref} onScroll={e => { const el = e.currentTarget; const k = Math.round(el.scrollLeft / Math.max(1, el.clientWidth)); if (k !== i) { setI(k); if (fotos[k]) onMudou?.(fotos[k]); } }}>
+      {fotos.map(id => <div key={id} className="carrossel-slide"><Foto id={id} className={cheio ? 'cheia' : ''} onClick={onAbrir ? () => onAbrir(id) : undefined} /></div>)}
+      {Array.from({ length: enviando }, (_, k) => <div key={'e' + k} className="carrossel-slide"><span className="casa-foto carregando"><i /></span></div>)}
+    </div>
+    {total > 1 && <><span className="carrossel-cont">{i + 1}/{total}</span>
+      {i > 0 && <button type="button" className="carrossel-seta esq" aria-label="Foto anterior" onClick={() => ir(i - 1)}>‹</button>}
+      {i < total - 1 && <button type="button" className="carrossel-seta dir" aria-label="Próxima foto" onClick={() => ir(i + 1)}>›</button>}
+      <div className="carrossel-pontos">{Array.from({ length: total }, (_, k) => <i key={k} className={k === i ? 'on' : ''} />)}</div></>}
+  </div>;
+}
 function Foto({ id, className, onClick }: { id: string; className?: string; onClick?: () => void }) {
   const [src, setSrc] = useState(''), [erro, setErro] = useState(false);
   useEffect(() => { let vivo = true; carregarFoto(id).then(s => vivo && setSrc(s)).catch(() => vivo && setErro(true)); return () => { vivo = false; }; }, [id]);
@@ -52,7 +69,7 @@ function Cartao({ i, onClick }: { i: ItemCasa; onClick: () => void }) {
 
 export default function Casa({ data, save, busy, ready, onReload }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean; onReload?: () => void }) {
   useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
-  const itens: ItemCasa[] = data.casa || [];
+  const itens: ItemCasa[] = normalizarCasa(data.casa || []);
   const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
   const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>(''), [tresD, setTresD] = useState<false | { movel?: string; sala?: string } | null>(false), [preset, setPreset] = useState<{ item: Partial<ItemCasa>; aviso?: Aviso } | null>(null);
   const r = resumoCasa(itens);
@@ -71,6 +88,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
         <button className={status === 'quero' ? 'on' : ''} onClick={() => setStatus(status === 'quero' ? 'todos' : 'quero')}><b>{r.quero}</b><small>queremos comprar{r.cotando ? ' · ' + r.cotando + ' em cotação' : ''}</small>{r.previsto > 0 && <em>≈ {money(r.previsto)} pelas melhores cotações</em>}</button>
         <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>já temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)} em itens</em>}</button>
       </div>
+      {itens.length > 0 && <PainelCasa p={painelCasa(itens)} />}
       <label className="search casa-busca"><Search size={17} /><input aria-label="Buscar item da casa" placeholder="Buscar: aspirador, pratos, cozinha…" value={busca} onChange={e => setBusca(e.target.value)} /></label>
       <div className="chips casa-cats">{['Todas', ...CATS_CASA].map(c => <button key={c} className={cat === c ? 'selected' : ''} onClick={() => setCat(c)}>{c}</button>)}</div>
     </section>
@@ -82,7 +100,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
       <div className="casa-grid">{l.map(i => <Cartao key={i.id} i={i} onClick={() => setAberto(i)} />)}</div></section>)
       : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Comece pelo que mais importa: algo que vocês querem comprar (como o robô aspirador) ou os eletrônicos que já têm, com foto e garantia.'}</p>{!itens.length && <div className="casa-novos centro"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={17} /> Algo que queremos</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Camera size={17} /> Algo que já temos</button></div>}</section>}
     {tresD !== false && <Casa3D itens={itens} avisos={avisos} inicial={tresD} onFechar={() => setTresD(false)} onAbrir={i => setAberto(i)} onSalvarAvisos={salvarAvisos}
-      onNovoItem={(comodo, nome, aviso, movel) => setPreset({ item: { comodo, name: nome || '', movel, status: aviso || !movel ? 'queremos' : 'temos', cat: aviso?.texto.match(/planta|jiboia/i) || /planta|quadro|tapete|cortina|sofá|mesa|cadeira|cama|guarda|estante|criado|puff/i.test(nome || '') ? 'Móveis e decoração' : /geladeira|fogão|micro|máquina|tv/i.test(nome || '') ? 'Eletroeletrônicos' : 'Utensílios' }, aviso })} />}
+      onNovoItem={(comodo, nome, aviso, movel) => setPreset({ item: { comodo, name: nome || '', movel, status: aviso || !movel ? 'queremos' : 'temos', cat: aviso?.texto.match(/planta|jiboia/i) || /planta|quadro|tapete|cortina|sofá|mesa|cadeira|cama|guarda|estante|criado|puff/i.test(nome || '') ? 'Móveis e decoração' : /geladeira|fogão|micro|máquina|tv/i.test(nome || '') ? 'Eletrônicos' : 'Utensílios' }, aviso })} />}
     {(novo || aberto || preset) && <Detalhe key={aberto?.id || (preset ? 'preset' : 'novo')} inicial={aberto} preset={preset?.item} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); setPreset(null); }}
       onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setPreset(null); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
@@ -142,11 +160,8 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
     <span className="eyebrow">{salvoNoApp ? it.cat.toUpperCase() : 'NOVO ITEM DA CASA'}</span>
     {!editando && <><h2>{it.name}</h2><p className="muted">{[LABEL[it.status], it.status !== 'temos' && it.prioridade ? PRIOR[it.prioridade] : '', it.comodo, it.marca, it.modelo].filter(Boolean).join(' · ')}</p></>}
 
-    <div className="casa-galeria">
-      {it.fotos.map(id => <Foto key={id} id={id} onClick={() => setVer(id)} />)}
-      {Array.from({ length: enviando }, (_, k) => <span key={'e' + k} className="casa-foto carregando"><i /></span>)}
-      {!it.fotos.length && !enviando && <span className="casa-foto vazia grande"><img src={'produtos/' + iconeCasa(it) + '.webp'} alt="" /></span>}
-    </div>
+    {it.fotos.length || enviando ? <Carrossel fotos={it.fotos} enviando={enviando} onAbrir={setVer} />
+      : <div className="casa-galeria"><span className="casa-foto vazia grande"><img src={'produtos/' + iconeCasa(it) + '.webp'} alt="" /></span></div>}
     <div className="casa-acoes-foto">
       <button type="button" className="primary" disabled={busy || it.fotos.length >= 12} onClick={() => cam.current?.click()}><Camera size={17} /> Tirar foto</button>
       <button type="button" className="secondary" disabled={busy || it.fotos.length >= 12} onClick={() => gal.current?.click()}><ImagePlus size={17} /> Da galeria</button>
@@ -209,6 +224,6 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
       </div>
       {apagar && <div className="apagar-confirma"><span>Apagar <b>{it.name}</b> e as fotos dele?</span><div><button className="perigo" disabled={busy} onClick={() => onDelete(it)}>Apagar</button><button className="secondary" onClick={() => setApagar(false)}>Cancelar</button></div></div>}
     </>}
-    {ver && <div className="casa-visor" onClick={() => setVer('')}><Foto id={ver} className="cheia" /><div className="casa-visor-acoes" onClick={e => e.stopPropagation()}><button className="perigo" disabled={busy} onClick={() => tirarFoto(ver)}><Trash2 size={15} /> Apagar foto</button><button className="secondary" onClick={() => setVer('')}>Fechar</button></div></div>}
+    {ver && <div className="casa-visor" onClick={() => setVer('')}><div onClick={e => e.stopPropagation()} className="casa-visor-car"><Carrossel fotos={it.fotos} enviando={0} inicio={it.fotos.indexOf(ver)} cheio onMudou={setVer} /></div><div className="casa-visor-acoes" onClick={e => e.stopPropagation()}><button className="perigo" disabled={busy} onClick={() => tirarFoto(ver)}><Trash2 size={15} /> Apagar foto</button><button className="secondary" onClick={() => setVer('')}>Fechar</button></div></div>}
   </section></div>;
 }

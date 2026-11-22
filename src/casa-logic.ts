@@ -1,5 +1,5 @@
 // Itens da casa (utensílios, eletrônicos…): categorias, status, cotações e totais.
-export const CATS_CASA = ['Cama, mesa e banho', 'Utensílios', 'Organização e limpeza', 'Eletrônicos', 'Eletroeletrônicos', 'Móveis e decoração', 'Outros'] as const;
+export const CATS_CASA = ['Cama, mesa e banho', 'Utensílios', 'Organização e limpeza', 'Eletrônicos', 'Móveis e decoração', 'Outros'] as const;
 export const STATUS_CASA = [
   { v: 'temos', l: 'Temos' },
   { v: 'cotando', l: 'Cotando' },
@@ -8,7 +8,7 @@ export const STATUS_CASA = [
 export const COMODOS = ['Cozinha', 'Sala', 'Quarto', 'Banheiro', 'Área de serviço', 'Escritório', 'Varanda', 'Outro'];
 export type Cotacao = { id: string; loja: string; preco: number; link?: string; data: string; obs?: string };
 export type ItemCasa = {
-  id: string; name: string; cat: typeof CATS_CASA[number]; status: 'temos' | 'cotando' | 'queremos';
+  id: string; name: string; cat: typeof CATS_CASA[number] | 'Eletroeletrônicos'; status: 'temos' | 'cotando' | 'queremos';
   comodo?: string; marca?: string; modelo?: string; preco?: number | null; dataCompra?: string; loja?: string;
   note?: string; fotos: string[]; cotacoes: Cotacao[]; criado: string; por?: string;
   radar?: { data: string; decisao: string; titulo?: string; link?: string };
@@ -71,4 +71,25 @@ export function limparLink(l?: string): string | undefined {
   if (!l) return l;
   try { const u = new URL(l); if (/(^|\.)google\.[a-z.]+$/.test(u.hostname) && u.pathname === '/url' && u.searchParams.get('q')) return u.searchParams.get('q')!; } catch {}
   return l;
+}
+
+/** Junta a antiga categoria "Eletroeletrônicos" em "Eletrônicos". */
+export const normalizarCasa = (l: ItemCasa[] = []): ItemCasa[] => l.map(i => i.cat === 'Eletroeletrônicos' ? { ...i, cat: 'Eletrônicos' } : i);
+
+/** Números do painel: por categoria e por cômodo, quanto já temos e quanto falta comprar. */
+export function painelCasa(itens: ItemCasa[]) {
+  const valor = (i: ItemCasa) => i.status === 'temos' ? (i.preco || 0) : (melhorCotacao(i)?.preco || i.preco || 0);
+  const grupo = (chave: (i: ItemCasa) => string) => {
+    const m = new Map<string, { nome: string; temos: number; comprar: number; nTemos: number; nComprar: number; semPreco: number }>();
+    itens.forEach(i => {
+      const k = chave(i); const g = m.get(k) || { nome: k, temos: 0, comprar: 0, nTemos: 0, nComprar: 0, semPreco: 0 };
+      const v = valor(i); if (!v) g.semPreco++;
+      if (i.status === 'temos') { g.temos += v; g.nTemos++; } else { g.comprar += v; g.nComprar++; }
+      m.set(k, g);
+    });
+    return [...m.values()].sort((a, b) => (b.temos + b.comprar) - (a.temos + a.comprar) || (b.nTemos + b.nComprar) - (a.nTemos + a.nComprar));
+  };
+  const temos = itens.filter(i => i.status === 'temos').reduce((a, i) => a + valor(i), 0);
+  const comprar = itens.filter(i => i.status !== 'temos').reduce((a, i) => a + valor(i), 0);
+  return { temos, comprar, total: temos + comprar, porCategoria: grupo(i => i.cat === 'Eletroeletrônicos' ? 'Eletrônicos' : i.cat), porComodo: grupo(i => i.comodo || 'Sem cômodo'), semPreco: itens.filter(i => !valor(i)).length };
 }

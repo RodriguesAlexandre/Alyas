@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {melhorCotacao,resumoCasa,filtrarCasa,comprei, desfazerCompra, limparLink,iconeCasa,frenteMeta} from '../src/casa-logic.ts';
-const it=(o)=>({id:o.name,cat:'Eletroeletrônicos',status:'temos',fotos:[],cotacoes:[],criado:'2026-11-20',...o});
+const it=(o)=>({id:o.name,cat:'Eletrônicos',status:'temos',fotos:[],cotacoes:[],criado:'2026-11-20',...o});
 test('cotações, resumo, filtro e compra',()=>{
  const robo=it({name:'Robô aspirador H50 Pro',status:'cotando',cotacoes:[{id:'a',loja:'Amazon',preco:1899,data:''},{id:'b',loja:'Magalu',preco:1749.9,data:''}]});
  const pratos=it({name:'Jogo de pratos',cat:'Utensílios',preco:180,comodo:'Cozinha'});
@@ -16,7 +16,7 @@ test('cotações, resumo, filtro e compra',()=>{
 
 test('desfazerCompra volta o item para cotando e limpa a compra feita pela cotação', () => {
   const c = { id: 'c1', loja: 'Xiaomi', preco: 1899, data: '2026-11-20' };
-  const item = { id: 'r', name: 'Robô H50 Pro', cat: 'Eletroeletrônicos', status: 'cotando', fotos: [], cotacoes: [c], criado: '2026-11-20' };
+  const item = { id: 'r', name: 'Robô H50 Pro', cat: 'Eletrônicos', status: 'cotando', fotos: [], cotacoes: [c], criado: '2026-11-20' };
   const v = desfazerCompra(comprei(item, c));
   assert.equal(v.status, 'cotando'); assert.equal(v.dataCompra, undefined); assert.equal(v.preco, null); assert.equal(v.loja, undefined);
   assert.equal(desfazerCompra(comprei({ ...item, cotacoes: [] })).status, 'queremos');

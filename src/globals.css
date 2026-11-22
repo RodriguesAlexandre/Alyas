@@ -357,3 +357,30 @@ html.escuro .c3d-props div{background:#1e1f1c}html.escuro .c3d-modo button.on{ba
 .c3d-palco.compacto .c3d-pino:after,.c3d-palco.compacto .c3d-aviso:after{height:6px}
 .c3d-props div:last-child:nth-child(odd){grid-column:1/-1}
 .c3d-acoes .secondary.ativo{background:#e3eedb;border-color:#9cbf86;color:#24451f}html.escuro .c3d-acoes .secondary.ativo{background:#2c3a26;color:#d8ecc8}
+.c3d-rotulos.oculto,.c3d-pinos.oculto{display:none}
+.c3d-acoes{flex-direction:column;align-items:stretch}.c3d-filtros{flex-wrap:wrap}.c3d-acoes>.secondary{align-self:flex-start}
+.c3d-acoes{display:flex;gap:8px}.c3d-acoes .c3d-botoes{display:flex;gap:8px;flex-wrap:wrap}
+/* carrossel de fotos */
+.carrossel{position:relative;margin:14px 0 10px;border-radius:14px;overflow:hidden;background:#f3f1e8}
+.carrossel-trilho{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;-webkit-overflow-scrolling:touch}.carrossel-trilho::-webkit-scrollbar{display:none}
+.carrossel-slide{flex:0 0 100%;scroll-snap-align:center;aspect-ratio:4/3;display:flex}.carrossel-slide .casa-foto{width:100%;height:100%;cursor:zoom-in}
+.carrossel-cont{position:absolute;top:10px;right:10px;background:#000a;color:#fff;font-size:12px;font-weight:700;padding:3px 9px;border-radius:12px}
+.carrossel-pontos{position:absolute;bottom:9px;left:0;right:0;display:flex;justify-content:center;gap:5px;pointer-events:none}.carrossel-pontos i{width:7px;height:7px;border-radius:50%;background:#fff9;box-shadow:0 0 2px #0006}.carrossel-pontos i.on{background:#fff;transform:scale(1.2)}
+.carrossel-seta{position:absolute;top:50%;transform:translateY(-50%);width:32px;height:32px;border-radius:50%;background:#fffd;color:#222;font-size:22px;line-height:1;display:grid;place-items:center;box-shadow:0 2px 8px #0003}.carrossel-seta.esq{left:8px}.carrossel-seta.dir{right:8px}
+@media(hover:none){.carrossel-seta{display:none}}
+.casa-visor-car{width:min(92vw,900px)}.carrossel.cheio{background:none;margin:0}.carrossel.cheio .carrossel-slide{aspect-ratio:auto;height:74vh;align-items:center;justify-content:center}.carrossel.cheio .casa-foto{background:none;cursor:default;display:flex;align-items:center;justify-content:center}.carrossel.cheio .casa-foto img{object-fit:contain;max-height:74vh}
+html.escuro .carrossel{background:#272824}
+/* painel da casa */
+.painel-casa{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--paper)}
+.painel-titulo{display:flex;align-items:center;gap:7px;color:var(--green);margin-bottom:10px}.painel-titulo b{color:var(--ink);font-size:14px}
+.painel-totais{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.painel-totais div{background:#f5f3ec;border-radius:10px;padding:9px 10px}.painel-totais small{display:block;font-size:11px;color:var(--muted)}.painel-totais b{font:800 16px Manrope}.painel-totais .total{background:#e6eedf}
+.painel-progresso{height:8px;border-radius:6px;background:#efd9c8;margin:12px 0 5px;overflow:hidden}.painel-progresso i{display:block;height:100%;background:var(--green);border-radius:6px}
+.painel-nota{display:block;font-size:11px}.painel-vista{margin:12px 0 8px}
+.painel-barras{list-style:none;padding:0;margin:0;display:grid;gap:11px}.painel-rotulo{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}.painel-rotulo span{display:flex;align-items:center;gap:6px}.painel-rotulo span:before{content:'';width:9px;height:9px;border-radius:3px;background:var(--cat)}
+.painel-barra{display:flex;height:12px;border-radius:6px;background:#f1efe8;overflow:hidden}.painel-barra i{display:block;height:100%}.painel-barra i.temos{background:var(--cat)}.painel-barra i.comprar{background:repeating-linear-gradient(45deg,color-mix(in srgb,var(--cat) 45%,#fff) 0 4px,color-mix(in srgb,var(--cat) 25%,#fff) 4px 8px)}
+.painel-barras small{font-size:11px}
+.painel-legenda{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:11px;color:var(--muted)}.painel-legenda i{display:inline-block;width:10px;height:10px;border-radius:3px;vertical-align:-1px;margin-right:4px;background:#6b8f71}.painel-legenda i.comprar{background:repeating-linear-gradient(45deg,#b7cbb9 0 3px,#dfe8df 3px 6px)}
+@media(max-width:520px){.painel-totais b{font-size:14px}}
+html.escuro .painel-totais div{background:#272824}html.escuro .painel-totais .total{background:#2c3a26}html.escuro .painel-barra,html.escuro .painel-casa{background:#1e1f1c}html.escuro .painel-barra{background:#2a2b27}
+.c3d-acoes .c3d-filtros{display:flex;flex-wrap:wrap!important;overflow:visible;gap:6px}.c3d-acoes .c3d-filtros button{padding:7px 11px;font-size:12px;white-space:nowrap}
+.c3d-botoes{display:flex!important;flex-wrap:wrap;gap:6px}.c3d-botoes .secondary{padding:8px 11px!important;font-size:12px;flex:0 0 auto;min-height:0;white-space:nowrap}

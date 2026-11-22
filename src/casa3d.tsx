@@ -34,10 +34,11 @@ export default function Casa3D({ itens, avisos, inicial, onFechar, onAbrir, onSa
   const palco = useRef<HTMLDivElement>(null), cena = useRef<Cena | null>(null), pinosEl = useRef<HTMLDivElement>(null), rotulosEl = useRef<HTMLDivElement>(null), avisosEl = useRef<HTMLDivElement>(null);
   const [pronto, setPronto] = useState(false), [erro, setErro] = useState(''), [altas, setAltas] = useState(true), [sala, setSala] = useState<string | null>(null);
   const [paisagem, setPaisagem] = useState(() => { try { return localStorage.getItem('aleyas-3d-paisagem') === '1'; } catch { return false; } });
-  const [planta, setPlanta] = useState(false), [filtro, setFiltro] = useState<'todos' | 'quero' | 'temos' | 'nenhum'>('todos');
+  const [planta, setPlanta] = useState(false), [ver, setVer] = useState({ comodos: true, avisos: true, temos: false, quero: false });
+  const alterna = (k: keyof typeof ver) => setVer(v => ({ ...v, [k]: !v[k] }));
   const [aba, setAba] = useState<'props' | 'avisos'>('avisos'), [sel, setSel_] = useState<Sel>(inicial || null), [texto, setTexto] = useState(''), [tipo, setTipo] = useState<TipoAviso>('manutencao'), [salvando, setSalvando] = useState(false);
   const setSel = (s: Sel) => { setSel_(s); if (s) setAba(avisosDe(avisos, s).some(a => !a.feito) ? 'avisos' : 'props'); };
-  const pinos = useMemo(() => filtro === 'nenhum' ? [] : posicionar(itens.filter(i => filtro === 'todos' || (filtro === 'temos' ? i.status === 'temos' : i.status !== 'temos'))), [itens, filtro]);
+  const pinos = useMemo(() => posicionar(itens.filter(i => i.status === 'temos' ? ver.temos : ver.quero)), [itens, ver.temos, ver.quero]);
   const pendentes = avisos.filter(a => !a.feito);
   const grupos = useMemo(() => { const g = new Map<string, Aviso[]>(); avisos.filter(a => !a.feito).forEach(a => { const k = a.movel ? 'm:' + a.movel : 's:' + (a.sala || ''); g.set(k, [...(g.get(k) || []), a]); }); return [...g.entries()]; }, [avisos]);
   const semComodo = itens.filter(i => !comodoDoItem(i.comodo)).length;
@@ -119,9 +120,9 @@ export default function Casa3D({ itens, avisos, inicial, onFechar, onAbrir, onSa
     <div className={'c3d-palco' + (planta ? ' planta' : '') + (!sala && !sel ? ' compacto' : '')} ref={palco}>
       {!pronto && !erro && <div className="c3d-carregando"><Loader2 className="spin" size={26} /> Montando a maquete…</div>}
       {erro && <div className="c3d-carregando">{erro}</div>}
-      <div className={'c3d-rotulos' + (planta ? ' planta' : '')} ref={rotulosEl} aria-hidden>{COMODOS_PLANTA.map(r => <span key={r.id} className={sala === r.id ? 'on' : ''}>{r.nome}</span>)}</div>
+      <div className={'c3d-rotulos' + (planta ? ' planta' : '') + (ver.comodos ? '' : ' oculto')} ref={rotulosEl} aria-hidden>{COMODOS_PLANTA.map(r => <span key={r.id} className={sala === r.id ? 'on' : ''}>{r.nome}</span>)}</div>
       <div className="c3d-pinos" ref={pinosEl}>{pinos.map(p => <button key={p.item.id} className={'c3d-pino ' + (p.item.status === 'temos' ? 'temos' : 'quero')} onClick={() => onAbrir(p.item)} title={p.item.name}><span>{p.item.name}</span></button>)}</div>
-      <div className="c3d-pinos" ref={avisosEl}>{grupos.map(([k, l]) => { const I = ICONE[l[0].tipo]; return <button key={k} className={'c3d-aviso ' + l[0].tipo} onClick={() => setSel(k.startsWith('m:') ? { movel: k.slice(2) } : { sala: k.slice(2) })} title={l.map(a => a.texto).join(' · ')}>
+      <div className={"c3d-pinos" + (ver.avisos ? "" : " oculto")} ref={avisosEl}>{grupos.map(([k, l]) => { const I = ICONE[l[0].tipo]; return <button key={k} className={'c3d-aviso ' + l[0].tipo} onClick={() => setSel(k.startsWith('m:') ? { movel: k.slice(2) } : { sala: k.slice(2) })} title={l.map(a => a.texto).join(' · ')}>
         <span><I size={13} /> {l.length > 1 ? l.length + ' avisos' : l[0].texto}</span></button>; })}</div>
     </div>
     {sel ? <div className="c3d-base c3d-ficha">
@@ -148,12 +149,14 @@ export default function Casa3D({ itens, avisos, inicial, onFechar, onAbrir, onSa
         {COMODOS_PLANTA.map(r => <button key={r.id} className={sala === r.id ? 'selected' : ''} onClick={() => focar(r.id)}>{r.nome}</button>)}
       </div>
       <div className="c3d-acoes">
-        <div className="chips">{([['todos', 'Itens'], ['quero', 'Queremos'], ['temos', 'Temos'], ['nenhum', 'Só avisos']] as const).map(([k, t]) => <button key={k} className={filtro === k ? 'selected' : ''} onClick={() => setFiltro(k)}>{t}</button>)}</div>
+        <div className="chips c3d-filtros" role="group" aria-label="Mostrar no 3D">{([['comodos', 'Nomes dos cômodos'], ['avisos', 'Consertos e avisos'], ['temos', 'Itens que temos'], ['quero', 'Itens para comprar']] as const).map(([k, t]) => <button key={k} aria-pressed={ver[k]} className={ver[k] ? 'selected' : ''} onClick={() => alterna(k)}>{ver[k] ? '✓ ' : ''}{t}</button>)}</div>
+        <div className="c3d-botoes">
         {!planta && <button className="secondary" onClick={() => { setAltas(!altas); cena.current?.paredes(!altas); }}><Layers size={16} /> {altas ? 'Paredes baixas' : 'Paredes altas'}</button>}
         {!planta && <button className={'secondary' + (paisagem ? ' ativo' : '')} aria-pressed={paisagem} onClick={() => { const v = !paisagem; setPaisagem(v); cena.current?.paisagem(v); try { localStorage.setItem('aleyas-3d-paisagem', v ? '1' : '0'); } catch {} }}><Mountain size={16} /> Paisagem {paisagem ? 'ligada' : 'desligada'}</button>}
         {!planta && <button className="secondary" onClick={() => { setPaisagem(true); try { localStorage.setItem('aleyas-3d-paisagem', '1'); } catch {} cena.current?.vistaVaranda(); }}><Eye size={16} /> Vista da varanda</button>}
+        </div>
       </div>
-      <p className="c3d-legenda"><i className="aviso" /> {pendentes.length} {pendentes.length === 1 ? 'aviso' : 'avisos'} <i className="quero" /> queremos <i className="temos" /> temos{semComodo ? ` · ${semComodo} sem cômodo` : ''}. Toque em qualquer objeto para anotar um aviso.</p>
+      <p className="c3d-legenda"><i className="aviso" /> {pendentes.length} {pendentes.length === 1 ? 'aviso' : 'avisos'} <i className="quero" /> para comprar <i className="temos" /> temos{semComodo ? ` · ${semComodo} sem cômodo` : ''}. Toque em qualquer objeto para anotar um aviso.</p>
     </div>}
   </div>;
 }
