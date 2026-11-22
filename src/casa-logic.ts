@@ -43,6 +43,12 @@ export function filtrarCasa(itens: ItemCasa[], status: string, cat: string, busc
 export function comprei(i: ItemCasa, c?: Cotacao | null, hoje = new Date()): ItemCasa {
   return { ...i, status: 'temos', preco: c?.preco ?? i.preco ?? null, loja: c?.loja || i.loja, dataCompra: hoje.toISOString().slice(0, 10) };
 }
+/** Desfaz um "comprei": volta o item para a lista do que queremos comprar. */
+export function desfazerCompra(i: ItemCasa): ItemCasa {
+  const daCotacao = i.cotacoes.some(c => c.loja === i.loja && c.preco === i.preco);
+  const { dataCompra, ...resto } = i;
+  return { ...resto, status: i.cotacoes.length ? 'cotando' : 'queremos', ...(daCotacao ? { preco: null, loja: undefined } : {}) };
+}
 /** Ícone 3D que mais se parece com o item. */
 export function iconeCasa(i: { name: string; cat: string }): string {
   const k = n(i.name);

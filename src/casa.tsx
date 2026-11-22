@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, Store } from 'lucide-react';
-import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
+import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
 import { corCat } from './cores';
 import { api } from './api';
-import { Radar, RefreshCw, Box } from 'lucide-react';
+import { Radar, RefreshCw, Box, RotateCcw } from 'lucide-react';
 import Casa3D from './casa3d';
 import { ondeAviso, rotuloTipo, type Aviso } from './avisos';
 import { Wrench, Check as Ok } from 'lucide-react';
@@ -204,6 +204,7 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
       <div className="casa-rodape">
         <button className="secondary" onClick={() => setEditando(true)}>Editar dados</button>
         {it.status !== 'temos' && !it.cotacoes.length && <button className="secondary" disabled={busy} onClick={() => onSave(comprei(it), 'Comprado! ' + it.name + ' agora está em Temos').then(ok => ok && setIt(comprei(it)))}>Já compramos</button>}
+        {it.status === 'temos' && <button className="secondary" disabled={busy} onClick={() => { const v = desfazerCompra(it); onSave(v, it.name + ' voltou para Queremos comprar').then(ok => ok && setIt(v)); }}><RotateCcw size={15} /> Não compramos ainda</button>}
         <button className="text-btn perigo-txt" onClick={() => setApagar(true)}><Trash2 size={14} /> Apagar item</button>
       </div>
       {apagar && <div className="apagar-confirma"><span>Apagar <b>{it.name}</b> e as fotos dele?</span><div><button className="perigo" disabled={busy} onClick={() => onDelete(it)}>Apagar</button><button className="secondary" onClick={() => setApagar(false)}>Cancelar</button></div></div>}
