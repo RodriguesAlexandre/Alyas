@@ -417,3 +417,4 @@ html.escuro .multi-painel,html.escuro .multi-botao{background:#1e1f1c}html.escur
 html.escuro .insights-lista li{background:#272824}html.escuro .insights-lista li.bom{background:#22301f}html.escuro .insights-lista li.alerta{background:#3a2620}html.escuro .insights-ia-txt{background:#22241f;border-color:#3b4a35}
 .link-prog{margin-top:10px}.link-prog-barra{height:8px;border-radius:6px;background:#e3e9d8;overflow:hidden}.link-prog-barra i{display:block;height:100%;background:linear-gradient(90deg,#3f7d34,#6fae55);border-radius:6px;transition:width .3s ease}
 .link-prog small{display:flex;justify-content:space-between;gap:8px;margin-top:5px;font-size:12px;color:var(--muted)}.link-prog b{color:var(--ink)}
+.gastos-limpar{font-size:13px;font-weight:700;color:#b0583a;margin:-2px 0 6px;padding:4px 0}

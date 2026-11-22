@@ -28,6 +28,7 @@ export default function Gastos({ data, compacto = false }: { data: any; compacto
       <Multi rotulo="Lugar" todosRotulo="Todos os lugares" opcoes={[...LUGARES]} marcados={todosL ? null : lugares} onMudar={v => setLugares(v ? v : [...LUGARES])} />
       <Multi rotulo="Categoria" todosRotulo="Todas as categorias" opcoes={ordemCats} cores={CORES} marcados={cats} onMudar={setCats} />
     </div>
+    {!todos && <button type="button" className="text-btn gastos-limpar" onClick={() => { setLugares([...LUGARES]); setCats(null); }}>✕ Limpar filtros</button>}
     {!todos && <p className="muted gastos-filtro-nota">Mostrando só: {[lugares.length < LUGARES.length ? lugares.join(' + ') : '', cats ? cats.join(' + ') : ''].filter(Boolean).join(' · ')}. Toque em Tudo e em Todas as categorias para ver o gasto total.</p>}
     {lugares.length === LUGARES.length && g.lugares.length > 1 && <div className="gastos-lugar-resumo">{g.lugares.map(l => <span key={l.lugar}><b>{money0(l.total)}</b> {l.lugar}</span>)}<small className="muted">{g.rotuloPeriodo}</small></div>}
     <div className="gastos-kpis">
