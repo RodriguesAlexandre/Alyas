@@ -1,22 +1,33 @@
 import { useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Receipt, ShoppingCart, CalendarRange } from 'lucide-react';
 import { gastos, type Periodo } from './gastos-logic';
+import { LUGARES } from './lugar';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
-const CORES: Record<string, string> = { Hortifruti: '#7d9c5a', Proteínas: '#d9714a', Laticínios: '#e8b84f', Mercearia: '#1f3d30', Bebidas: '#5b8fa8', Limpeza: '#9b7bb5', Higiene: '#c97a9a', Utilidades: '#8a8f80', Outros: '#b9b29f' };
+const CORES: Record<string, string> = { Hortifruti: '#7d9c5a', Proteínas: '#d9714a', Laticínios: '#e8b84f', Mercearia: '#1f3d30', Bebidas: '#5b8fa8', Limpeza: '#9b7bb5', Higiene: '#c97a9a', Utilidades: '#8a8f80', 'Casa e bem-estar': '#b0789b', Outros: '#b9b29f' };
 
 /** Dashboard de gastos da casa, a partir das compras registradas (notas e compras concluídas). */
 export default function Gastos({ data, compacto = false }: { data: any; compacto?: boolean }) {
   const [periodo, setPeriodo] = useState<Periodo>('3m');
-  const g = useMemo(() => gastos(data, periodo), [data, periodo]);
-  if (!g.compras) return <section className="card gastos"><span className="eyebrow">GASTOS DA CASA</span><h2>Seu painel de gastos</h2><p className="muted">Assim que vocês concluírem compras ou importarem notas, os gastos aparecem aqui por mês e por categoria.</p></section>;
+  const [lugares, setLugares] = useState<string[]>([...LUGARES]);
+  const todos = lugares.length === LUGARES.length;
+  const alterna = (l: string) => setLugares(v => todos ? [l] : v.includes(l) ? (v.length > 1 ? v.filter(x => x !== l) : [...LUGARES]) : [...v, l]);
+  const g = useMemo(() => gastos(data, periodo, new Date(), lugares), [data, periodo, lugares]);
+  const filtros = <div className="chips gastos-lugares" role="group" aria-label="Filtrar por lugar de compra">
+    <button className={todos ? 'selected' : ''} aria-pressed={todos} onClick={() => setLugares([...LUGARES])}>Tudo</button>
+    {LUGARES.map(l => <button key={l} className={!todos && lugares.includes(l) ? 'selected' : ''} aria-pressed={!todos && lugares.includes(l)} onClick={() => alterna(l)}>{!todos && lugares.includes(l) ? '✓ ' : ''}{l}</button>)}
+  </div>;
+  if (!g.compras && todos) return <section className="card gastos"><span className="eyebrow">GASTOS DA CASA</span><h2>Seu painel de gastos</h2><p className="muted">Assim que vocês concluírem compras ou importarem notas, os gastos aparecem aqui por mês e por categoria.</p></section>;
   const maxMes = Math.max(...g.meses.map(m => m.total), 1);
   const maxCat = Math.max(...g.categorias.map(c => c.total), 1);
   const delta = g.mesAnterior > 0 ? (g.mesAtual - g.mesAnterior) / g.mesAnterior : 0;
   return <section className="card gastos">
     <div className="section-title"><div><span className="eyebrow">GASTOS DA CASA</span><h2>Para onde vai o dinheiro</h2></div>
       {!compacto && <div className="chips gastos-periodo">{([['1m', 'Este mês'], ['3m', '3 meses'], ['tudo', 'Tudo']] as [Periodo, string][]).map(([v, l]) => <button key={v} className={periodo === v ? 'selected' : ''} onClick={() => setPeriodo(v)}>{l}</button>)}</div>}</div>
+    {filtros}
+    {!todos && <p className="muted gastos-filtro-nota">Mostrando só: {lugares.join(' + ')}. Toque em Tudo para ver o gasto total.</p>}
+    {todos && g.lugares.length > 1 && <div className="gastos-lugar-resumo">{g.lugares.map(l => <span key={l.lugar}><b>{money0(l.total)}</b> {l.lugar}</span>)}<small className="muted">{g.rotuloPeriodo}</small></div>}
     <div className="gastos-kpis">
       <div><small><CalendarRange size={14} /> Este mês</small><strong>{money0(g.mesAtual)}</strong><span className={delta > 0 ? 'up' : 'down'}>{!g.mesAtual ? 'nenhuma compra registrada ainda' : g.mesAnterior > 0 ? <>{delta > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />} {Math.abs(Math.round(delta * 100))}% vs mês passado</> : 'primeiro mês registrado'}</span></div>
       <div><small><Receipt size={14} /> Por compra</small><strong>{money0(g.ticketMedio)}</strong><span>{g.comprasPeriodo} compras no período</span></div>

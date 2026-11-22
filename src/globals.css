@@ -384,3 +384,13 @@ html.escuro .carrossel{background:#272824}
 html.escuro .painel-totais div{background:#272824}html.escuro .painel-totais .total{background:#2c3a26}html.escuro .painel-barra,html.escuro .painel-casa{background:#1e1f1c}html.escuro .painel-barra{background:#2a2b27}
 .c3d-acoes .c3d-filtros{display:flex;flex-wrap:wrap!important;overflow:visible;gap:6px}.c3d-acoes .c3d-filtros button{padding:7px 11px;font-size:12px;white-space:nowrap}
 .c3d-botoes{display:flex!important;flex-wrap:wrap;gap:6px}.c3d-botoes .secondary{padding:8px 11px!important;font-size:12px;flex:0 0 auto;min-height:0;white-space:nowrap}
+/* filtros de categoria sempre visíveis: quebram linha em vez de esconder à direita */
+@media(max-width:800px){
+ .casa-cats,.catalog-chips,.gastos-lugares,.supply-filters,.c3d-filtros,.gastos-periodo,.painel-vista{flex-wrap:wrap!important;overflow:visible!important}
+ .casa-cats button,.catalog-chips button,.gastos-lugares button,.supply-filters button{padding:7px 11px;font-size:12.5px}
+ .c3d-salas,.shopping-tabs,.days{-webkit-mask-image:linear-gradient(90deg,#000 85%,transparent);mask-image:linear-gradient(90deg,#000 85%,transparent);padding-right:28px!important}
+}
+.gastos-lugares{margin:4px 0 10px}.gastos-filtro-nota{font-size:12px;margin:-4px 0 10px}
+.gastos-lugar-resumo{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin:0 0 12px;font-size:13px}.gastos-lugar-resumo b{font-family:Manrope}
+.lugar-tag{font-style:normal;font-size:10px;font-weight:700;margin-left:6px;padding:2px 7px;border-radius:8px;background:#f3e6d8;color:#8a4b22;vertical-align:1px}.lugar-tag.Sacolão{background:#e4efd6;color:#3d6420}.lugar-tag.Açougue{background:#f8dcd6;color:#9a2f22}.lugar-tag.Outros{background:#efe2ec;color:#7a3f6b}
+html.escuro .lugar-tag{filter:brightness(.8)}

@@ -6,7 +6,7 @@ import { allRecipes, slots, days, consolidate } from './data.ts';
 export type Acao = { type: string; product?: string; qty?: number; unit?: string; status?: 'ok' | 'low' | 'out'; day?: number; meal?: string; recipe_id?: string; name?: string; value?: number; ingredients?: { name: string; qty?: number; unit?: string }[]; steps?: string[]; plan_day?: number; plan_meal?: string };
 
 const UNIDADES = ['un', 'g', 'kg', 'ml', 'L', 'fatia', 'pacote'];
-const CATS = ['Hortifruti', 'Proteínas', 'Laticínios', 'Mercearia', 'Bebidas', 'Limpeza', 'Higiene', 'Utilidades', 'Outros'];
+const CATS = ['Hortifruti', 'Proteínas', 'Laticínios', 'Mercearia', 'Bebidas', 'Limpeza', 'Higiene', 'Utilidades', 'Casa e bem-estar', 'Outros'];
 const unidade = (u?: string) => (u && UNIDADES.includes(u) ? u : u === 'l' ? 'L' : 'un');
 const refeicao = (m?: string) => slots.find(s => normalizeName(s) === normalizeName(m || '')) || slots.find(s => normalizeName(m || '').includes(normalizeName(s).split(' ')[0])) || '';
 const uid = () => (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2)) as string;

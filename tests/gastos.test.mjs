@@ -14,3 +14,16 @@ test('texto do WhatsApp agrupa o que falta por categoria',()=>{
  const t=textoWhats([{name:'Pão',cat:'Mercearia',qty:1,unit:'pacote',checked:false},{name:'Alface',cat:'Hortifruti',qty:1,unit:'un',checked:false},{name:'Leite',cat:'Laticínios',qty:2,unit:'L',checked:true}]);
  assert.ok(t.indexOf('*Hortifruti*')<t.indexOf('*Mercearia*'));assert.ok(!t.includes('Leite'));assert.ok(t.includes('2 itens'));
 });
+
+test('filtro por lugar de compra', async () => {
+  const { gastos } = await import('../src/gastos-logic.ts');
+  const hoje = new Date('2026-11-22T12:00:00-03:00');
+  const data = { catalog: [], history: [
+    { id: 'a', date: '2026-11-20T10:00:00-03:00', total: 100, items: [{ name: 'Arroz', qty: 1, unit: 'un', cat: 'Mercearia', price: 30, lineTotal: 30 }, { name: 'Incenso', qty: 1, unit: 'un', cat: 'Casa e bem-estar', price: 20, lineTotal: 20 }, { name: 'Picanha', qty: 1, unit: 'kg', cat: 'Proteínas', price: 50, lineTotal: 50, lugar: 'Açougue' }] },
+  ] };
+  assert.equal(gastos(data, '1m', hoje).mesAtual, 100);
+  assert.equal(gastos(data, '1m', hoje, ['Supermercado']).mesAtual, 30);
+  assert.equal(gastos(data, '1m', hoje, ['Supermercado', 'Açougue']).mesAtual, 80);
+  assert.equal(gastos(data, '1m', hoje, ['Outros']).mesAtual, 20);
+  assert.deepEqual(gastos(data, '1m', hoje).lugares.map(l => l.lugar), ['Supermercado', 'Açougue', 'Outros']);
+});
