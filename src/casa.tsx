@@ -114,10 +114,11 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
   const [enviando, setEnviando] = useState(0), [erro, setErro] = useState(''), [ver, setVer] = useState(''), [apagar, setApagar] = useState(false);
   const [cot, setCot] = useState({ loja: '', preco: '', link: '' });
   const [puxando, setPuxando] = useState(false);
-  const [link, setLink] = useState(''), [lendoLink, setLendoLink] = useState(false), [formKey, setFormKey] = useState(0), [achou, setAchou] = useState('');
+  const [link, setLink] = useState(''), [lendoLink, setLendoLink] = useState(false), [prog, setProg] = useState(0), [formKey, setFormKey] = useState(0), [achou, setAchou] = useState('');
   async function buscarLink() {
     const u = link.trim(); if (!/^https?:\/\//.test(u)) { setErro('Cole o link completo do produto (começando com https://).'); return; }
-    setLendoLink(true); setErro(''); setAchou('');
+    setLendoLink(true); setErro(''); setAchou(''); setProg(3);
+    const t0 = Date.now(); const tick = setInterval(() => { const seg = (Date.now() - t0) / 1000; setProg(p => Math.max(p, Math.min(92, Math.round(92 * (1 - Math.exp(-seg / 9)))))); }, 300);
     try {
       const p = await api.lerProduto(u);
       let fotos = it.fotos;
@@ -131,7 +132,7 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
       setFormKey(k => k + 1); setLink('');
       setAchou([p.preco ? 'Preço ' + p.preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) + (temos ? '' : ' (virou cotação)') : 'Preço não encontrado', p.foto ? 'foto adicionada' : 'sem foto', 'categoria ' + p.cat].join(' · ') + '. Confira e salve.');
     } catch (e: any) { setErro(e?.message || 'Não consegui ler esse link.'); }
-    finally { setLendoLink(false); }
+    finally { clearInterval(tick); setProg(100); setTimeout(() => { setLendoLink(false); setProg(0); }, 400); }
   }
   const cam = useRef<HTMLInputElement>(null), gal = useRef<HTMLInputElement>(null);
   const salvoNoApp = !!inicial;
@@ -192,7 +193,11 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
     {editando && <div className="casa-link">
       <label><Link2 size={15} /> Tem o link do produto? <small>Shopee, Mercado Livre, Amazon, Magalu…</small></label>
       <div><input aria-label="Link do produto" inputMode="url" placeholder="Cole o link aqui" value={link} onChange={e => setLink(e.target.value)} onPaste={e => { const t = e.clipboardData.getData('text'); if (/^https?:\/\//.test(t.trim())) setTimeout(() => setLink(t.trim()), 0); }} />
-        <button type="button" className="primary" disabled={lendoLink || !link.trim()} onClick={buscarLink}>{lendoLink ? <Loader2 size={16} className="spin" /> : null} {lendoLink ? 'Lendo…' : 'Buscar'}</button></div>
+        <button type="button" className="primary" disabled={lendoLink || !link.trim()} onClick={buscarLink}>{lendoLink ? <Loader2 size={16} className="spin" /> : null} {lendoLink ? prog + '%' : 'Buscar'}</button></div>
+      {lendoLink && <div className="link-prog" role="progressbar" aria-valuenow={prog} aria-valuemin={0} aria-valuemax={100}>
+        <div className="link-prog-barra"><i style={{ width: prog + '%' }} /></div>
+        <small>{prog < 20 ? 'Abrindo a página da loja…' : prog < 45 ? 'Lendo nome, preço e foto…' : prog < 75 ? 'Organizando com a IA (categoria, cômodo, marca)…' : prog < 100 ? 'Baixando a foto do produto…' : 'Pronto!'} <b>{prog}%</b></small>
+      </div>}
       {achou && <p className="casa-link-ok"><Check size={14} /> {achou}</p>}
     </div>}
     {editando ? <form key={formKey} onSubmit={salvarForm} className="casa-form">
