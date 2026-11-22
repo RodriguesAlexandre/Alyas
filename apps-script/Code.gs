@@ -244,7 +244,7 @@ function ofertas() {
 
 // ---------------- Assistente de IA (Gemini) ----------------
 // A chave fica só nas Propriedades do script (Configurações do projeto → Propriedades do script → GEMINI_KEY).
-const IA_MODELOS = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
+const IA_MODELOS = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-pro-latest', 'gemini-2.5-flash-lite'];
 const IA_ACOES = ['add_to_list', 'remove_from_list', 'mark_in_cart', 'set_supply', 'plan_meal', 'clear_meal', 'create_recipe', 'plan_to_list', 'set_budget'];
 
 function assistente(p) {
@@ -294,14 +294,15 @@ function assistente(p) {
     contents: msgs.map(function (m) { return { role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: String(m.text || '').slice(0, 4000) }] }; }),
     generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.6 }
   };
-  const modelos = props.getProperty('GEMINI_MODEL') ? [props.getProperty('GEMINI_MODEL')] : IA_MODELOS;
+  const modelos = [props.getProperty('GEMINI_MODEL')].concat(IA_MODELOS).filter(function (x, i, a) { return x && (a.indexOf(x) === i || x === 'gemini-flash-latest'); });
   let ultimoErro = '';
   for (let i = 0; i < modelos.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelos[i] + ':generateContent', {
       method: 'post', contentType: 'application/json', payload: JSON.stringify(corpo), muteHttpExceptions: true, headers: { 'x-goog-api-key': chave } });
     const code = r.getResponseCode();
-    if (code === 404) { ultimoErro = 'modelo ' + modelos[i] + ' indisponível'; continue; }
-    if (code !== 200) { ultimoErro = 'Gemini respondeu ' + code + ': ' + r.getContentText().slice(0, 200); if (code === 400 || code === 403) break; continue; }
+    if (code === 404) { ultimoErro += (ultimoErro ? '; ' : '') + modelos[i] + ' 404'; continue; }
+    if (code === 503 || code === 429) Utilities.sleep(1500);
+    if (code !== 200) { ultimoErro += (ultimoErro ? '; ' : '') + modelos[i] + ' ' + code + ' ' + r.getContentText().slice(0, 120); if (code === 400 || code === 403) break; continue; }
     const j = JSON.parse(r.getContentText());
     const txt = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(function (x) { return x.text || ''; }).join('');
     try { const out = JSON.parse(txt); return { ok: true, reply: String(out.reply || ''), actions: Array.isArray(out.actions) ? out.actions.slice(0, 40) : [], model: modelos[i] }; }
@@ -326,14 +327,15 @@ function gemini(corpo) {
   const props = PropertiesService.getScriptProperties();
   const chave = props.getProperty('GEMINI_KEY');
   if (!chave) return { erro: falha('IA ainda não ligada: falta a chave do Gemini.', 412) };
-  const modelos = props.getProperty('GEMINI_MODEL') ? [props.getProperty('GEMINI_MODEL')] : IA_MODELOS;
+  const modelos = [props.getProperty('GEMINI_MODEL')].concat(IA_MODELOS).filter(function (x, i, a) { return x && (a.indexOf(x) === i || x === 'gemini-flash-latest'); });
   let ultimoErro = '';
   for (let i = 0; i < modelos.length; i++) {
     const r = UrlFetchApp.fetch('https://generativelanguage.googleapis.com/v1beta/models/' + modelos[i] + ':generateContent', {
       method: 'post', contentType: 'application/json', payload: JSON.stringify(corpo), muteHttpExceptions: true, headers: { 'x-goog-api-key': chave } });
     const code = r.getResponseCode();
-    if (code === 404) { ultimoErro = 'modelo ' + modelos[i] + ' indisponível'; continue; }
-    if (code !== 200) { ultimoErro = 'Gemini respondeu ' + code; if (code === 400 || code === 403) break; continue; }
+    if (code === 404) { ultimoErro += (ultimoErro ? '; ' : '') + modelos[i] + ' 404'; continue; }
+    if (code === 503 || code === 429) Utilities.sleep(1500);
+    if (code !== 200) { ultimoErro += (ultimoErro ? '; ' : '') + modelos[i] + ' ' + code + ' ' + r.getContentText().slice(0, 120); if (code === 400 || code === 403) break; continue; }
     const j = JSON.parse(r.getContentText());
     const txt = j.candidates && j.candidates[0] && j.candidates[0].content && j.candidates[0].content.parts.map(function (x) { return x.text || ''; }).join('');
     try { return { json: JSON.parse(txt) }; } catch (e) { return { erro: falha('A IA respondeu num formato inesperado. Tente de novo.', 502) }; }
@@ -409,13 +411,14 @@ function lerProduto(p) {
     }
   } catch (e) {}
   achado.titulo = String(achado.titulo || '').replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/\s*[|\-–]\s*(Shopee Brasil|Mercado Livre|Amazon\.com\.br|Magazine Luiza|KaBuM!?).*$/i, '').trim();
+  if (!achado.titulo) { const slug = decodeURIComponent(url.split(/[?#]/)[0].replace(/^https?:\/\/[^\/]+/, '').split('/').filter(function (x) { return /[a-z]/i.test(x) && /-/.test(x); }).sort(function (x, y) { return y.length - x.length; })[0] || '').replace(/-(i\.\d+\.\d+|MLB\w+)$/i, '').replace(/^MLB-?\d+-?/i, ''); if (slug && /-/.test(slug)) achado.titulo = slug.replace(/[-_]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }).slice(0, 150); }
   if (!achado.titulo && !texto) return falha('Não consegui abrir esse link (a loja bloqueou a leitura). Cadastre pelo nome e cole o link na cotação.', 422);
   // IA organiza: nome curto, categoria, cômodo, marca e modelo
   let ia = {};
   if (PropertiesService.getScriptProperties().getProperty('GEMINI_KEY')) {
     const schema = { type: 'OBJECT', properties: { name: { type: 'STRING' }, cat: { type: 'STRING', enum: CATS }, comodo: { type: 'STRING', enum: COMODOS }, marca: { type: 'STRING' }, modelo: { type: 'STRING' }, preco: { type: 'NUMBER' } }, required: ['name', 'cat'] };
     const g = gemini({ contents: [{ role: 'user', parts: [{ text: 'Produto para a casa de um casal, anunciado em ' + achado.loja + '.\nTítulo: ' + achado.titulo + '\nPreço lido: ' + (achado.preco || 'não encontrado') + '\nDescrição: ' + String(achado.descricao).slice(0, 1500) + '\nTexto da página: ' + texto.slice(0, 4000) + '\n\nDevolva: name (nome curto e claro em português, até 60 letras, sem códigos e sem propaganda), cat (categoria da casa), comodo (onde provavelmente fica), marca, modelo e preco (preço à vista em reais que aparece na página; omita se não tiver certeza). Não invente.' }] }], generationConfig: { responseMimeType: 'application/json', responseSchema: schema, temperature: 0.1 } });
-    if (!g.erro) ia = g.json || {};
+    if (!g.erro) ia = g.json || {}; else achado.iaErro = (g.erro.getContent ? g.erro.getContent() : JSON.stringify(g.erro)).slice(0, 300);
   }
   // Foto: baixa e devolve em base64 (o app comprime e guarda)
   let foto = '', mime = '';
@@ -423,7 +426,7 @@ function lerProduto(p) {
     try { const r = UrlFetchApp.fetch(achado.imagem, { muteHttpExceptions: true, headers: UA }); const b = r.getBlob(); if (r.getResponseCode() === 200 && b.getBytes().length < 4000000 && /image/.test(b.getContentType())) { foto = Utilities.base64Encode(b.getBytes()); mime = b.getContentType(); } } catch (e) {}
   }
   const preco = achado.preco != null && achado.preco > 0 ? Math.round(achado.preco * 100) / 100 : (ia.preco > 0 ? Math.round(ia.preco * 100) / 100 : null);
-  return { ok: true, produto: { name: String(ia.name || achado.titulo).slice(0, 80), titulo: achado.titulo.slice(0, 200), cat: CATS.indexOf(ia.cat) >= 0 ? ia.cat : 'Outros', comodo: COMODOS.indexOf(ia.comodo) >= 0 ? ia.comodo : '', marca: String(ia.marca || '').slice(0, 60), modelo: String(ia.modelo || '').slice(0, 60), preco: preco, loja: achado.loja, link: url, foto: foto, mime: mime } };
+  return { ok: true, produto: { name: String(ia.name || achado.titulo).slice(0, 80), titulo: achado.titulo.slice(0, 200), cat: CATS.indexOf(ia.cat) >= 0 ? ia.cat : 'Outros', comodo: COMODOS.indexOf(ia.comodo) >= 0 ? ia.comodo : '', marca: String(ia.marca || '').slice(0, 60), modelo: String(ia.modelo || '').slice(0, 60), preco: preco, loja: achado.loja, link: url, foto: foto, mime: mime, iaErro: achado.iaErro || '' } };
 }
 
 /** Recebe a chave do Gemini pelo app, testa e guarda nas Propriedades do script (nunca é devolvida). */
