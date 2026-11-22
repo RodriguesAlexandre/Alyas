@@ -13,7 +13,7 @@ export type ItemCasa = {
   note?: string; fotos: string[]; cotacoes: Cotacao[]; criado: string; por?: string;
   radar?: { data: string; decisao: string; titulo?: string; link?: string };
   medidas?: { l: number; p: number; a: number };
-  movel?: string;
+  movel?: string; garantiaAte?: string; notaFoto?: string; manutencoes?: { data: string; texto: string; valor?: number }[];
   prioridade?: 'alta' | 'media' | 'baixa'; meta?: number | null;
 };
 const n = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();

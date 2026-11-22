@@ -23,6 +23,8 @@ export function insights(data: any, hoje = new Date()): Insight[] {
     const d = (g.mesAtual - g.mesAnterior) / g.mesAnterior;
     if (Math.abs(d) >= .15) out.push({ tom: d > 0 ? 'alerta' : 'bom', titulo: d > 0 ? 'Gastando mais que no mês passado' : 'Gastando menos que no mês passado', texto: `${d > 0 ? '+' : ''}${pct(d)} em relação ao mês passado (${money(g.mesAnterior)}).` });
   }
+  for (const o of mes.orcamentos.filter(o => o.pct >= .8)) out.unshift({ tom: 'alerta', titulo: o.pct >= 1 ? `${o.cat}: limite do mês estourado` : `${o.cat}: ${pct(o.pct)} do limite do mês`, texto: `${money(o.gasto)} de ${money(o.limite)} definidos para ${o.cat} este mês.` });
+  if (mes.foraMes > 0 && mes.comidaMes.total > 0 && mes.comidaMes.fora / mes.comidaMes.total >= .3) out.push({ tom: 'dica', titulo: `${pct(mes.comidaMes.fora / mes.comidaMes.total)} da comida veio de fora`, texto: `${money(mes.comidaMes.fora)} em delivery, padaria e restaurante este mês, contra ${money(mes.comidaMes.mercado)} no mercado.` });
   // categoria que mais pesa
   const top = g.categorias[0];
   if (top && top.pct >= .3) out.push({ tom: 'dica', titulo: `${top.cat} é ${pct(top.pct)} dos gastos`, texto: `${money(top.total)} nos últimos 3 meses. É onde uma troca de marca, compra no atacado ou oferta faz mais diferença.` });

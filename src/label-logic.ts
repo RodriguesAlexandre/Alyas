@@ -19,3 +19,19 @@ export function repeatPurchase(items:any[],bought:any[]){const next=[...items];f
 /** Código de barras (EAN-13) impresso embaixo das barras, ex.: "7 898226 340757". */
 export function lerEAN(text:string){for(const m of text.matchAll(/(\d[\d ]{11,18}\d)/g)){const d=m[1].replace(/\s/g,'');for(let i=0;i+13<=d.length;i++){const e=d.slice(i,i+13);if(eanValido(e))return e}}return ''}
 export function eanValido(e:string){if(!/^\d{13}$/.test(e))return false;const s=e.slice(0,12).split('').reduce((a,c,i)=>a+Number(c)*(i%2?3:1),0);return (10-s%10)%10===Number(e[12])}
+/** Compara o preço lido na etiqueta com a última compra e com a média do histórico (mesmo produto e apresentação). */
+export function compararPreco(history:any[],name:string,unit:string,price:number,packageQty?:number|null,packageUnit?:string){
+ if(!(price>0))return null;
+ const regs=history.filter(h=>!h.archived&&h.date).flatMap(h=>h.items.map((i:any)=>({...i,boughtDate:h.date,store:h.store||'Não informado'}))).filter(i=>clean(i.name)===clean(name)&&i.unit===unit&&i.price>0&&!i.needsReview&&(unit==='kg'||unit==='L'||(i.packageQty||null)===(packageQty||null)&&(i.packageUnit||'')===(packageUnit||''))).sort((a,b)=>Date.parse(b.boughtDate)-Date.parse(a.boughtDate));
+ if(!regs.length)return null;
+ const ult=regs[0],media=regs.reduce((a,r)=>a+r.price,0)/regs.length,menor=Math.min(...regs.map(r=>r.price));
+ const difUlt=+(price-ult.price).toFixed(2),pctMedia=media>0?(price/media-1):0;
+ const tom=difUlt>=.01&&pctMedia>.03?'caro':difUlt<=-.01||pctMedia<-.03?'barato':'igual';
+ return {ultimo:ult.price,data:ult.boughtDate,loja:ult.store,media:+media.toFixed(2),menor,difUlt,pctMedia,compras:regs.length,tom};
+}
+export function frasePreco(c:NonNullable<ReturnType<typeof compararPreco>>){
+ const m=(n:number)=>n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+ const a=Math.abs(c.difUlt)<.01?'Mesmo preço da última vez':m(Math.abs(c.difUlt))+(c.difUlt>0?' mais caro':' mais barato')+' que da última vez';
+ const b=c.compras<2?'':Math.abs(c.pctMedia)<.03?'na média':Math.round(Math.abs(c.pctMedia)*100)+'% '+(c.pctMedia>0?'acima':'abaixo')+' da média';
+ return [a,b].filter(Boolean).join(' · ');
+}

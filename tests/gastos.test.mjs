@@ -35,3 +35,13 @@ test('filtro por categoria', async () => {
   assert.equal(gastos(data, '1m', hoje, undefined, ['Proteínas']).mesAtual, 70);
   assert.equal(gastos(data, '1m', hoje, ['Açougue'], ['Proteínas']).mesAtual, 0);
 });
+test('gastos fora do mercado e orçamento por categoria',()=>{
+ const hoje=new Date('2026-11-20T12:00:00-03:00');
+ const data={catalog:[],budget:500,orcCat:{'Proteínas':100,'Comida pronta':50},history:[{id:'a',date:'2026-11-10T12:00:00-03:00',total:90,unknown:0,items:[{id:'1',name:'Frango',cat:'Proteínas',qty:1,unit:'kg',price:90,checked:true,date:null}]}],
+  gastosFora:[{id:'f1',data:'2026-11-12T15:00:00.000Z',tipo:'iFood/delivery',valor:60,desc:'Pizza'},{id:'f2',data:'2026-11-13T15:00:00.000Z',tipo:'Farmácia',valor:30}]};
+ const g=gastos(data,'1m',hoje);
+ assert.equal(g.mesAtual,180);
+ assert.equal(g.comidaMes.fora,60);assert.equal(g.comidaMes.mercado,90);assert.equal(g.foraMes,90);
+ assert.deepEqual(g.orcamentos.map(o=>[o.cat,o.pct]),[['Comida pronta',1.2],['Proteínas',.9]]);
+ assert.equal(gastos(data,'1m',hoje,['Supermercado']).mesAtual,90);
+});
