@@ -11,3 +11,12 @@ test('nota lida pela IA vira compra, marca tem em casa e tira da lista',()=>{
  assert.ok(notaDuplicada(r.data,montarNota({total:30,date:'2026-10-30',items:[{name:'x',qty:1,unit:'un',lineTotal:30}]})));
  assert.ok(montarNota({total:50,items:[{name:'x',qty:1,unit:'un',lineTotal:30}]}).reviewNote);
 });
+
+test('lugar da nota é adivinhado pela loja', async () => {
+  const { lugarDaNota, ehCasaConsumo } = await import('../src/lugar.ts');
+  assert.equal(lugarDaNota('SUPERMERCADOS BH COM DE ALIMENTOS'), 'Supermercado');
+  assert.equal(lugarDaNota('Casa de Carnes Boi Gordo'), 'Açougue');
+  assert.equal(lugarDaNota('Sacolão Nogueira'), 'Sacolão');
+  assert.equal(lugarDaNota('Loja X', [{ cat: 'Proteínas' }, { cat: 'Proteínas' }]), 'Açougue');
+  assert.ok(ehCasaConsumo('Essência Politriz eucalipto 140ml'));
+});

@@ -1,9 +1,10 @@
+import { lugarDaNota, ehCasaConsumo } from './lugar.ts';
 // Converte uma nota lida pela IA em compra do histórico e atualiza lista/catálogo.
 import { importReceipts } from './receipt-tools.ts';
 import { sameProduct } from './product-identity.ts';
 
 const UNID = ['un', 'g', 'kg', 'ml', 'L', 'fatia', 'pacote'];
-const CATS = ['Hortifruti', 'Proteínas', 'Laticínios', 'Mercearia', 'Bebidas', 'Limpeza', 'Higiene', 'Utilidades', 'Outros'];
+const CATS = ['Hortifruti', 'Proteínas', 'Laticínios', 'Mercearia', 'Bebidas', 'Limpeza', 'Higiene', 'Utilidades', 'Casa e bem-estar', 'Outros'];
 const num = (v: any) => (typeof v === 'number' && Number.isFinite(v) ? v : Number(String(v ?? '').replace(',', '.')));
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -14,12 +15,12 @@ export function montarNota(n: any, agora = new Date()) {
     const lineTotal = num(i.lineTotal) >= 0 ? r2(num(i.lineTotal)) : num(i.price) >= 0 ? r2(num(i.price) * qty) : 0;
     const price = num(i.price) > 0 ? r2(num(i.price)) : qty ? r2(lineTotal / qty) : null;
     const name = String(i.name).trim().slice(0, 80);
-    return { id: 'ia-' + agora.getTime().toString(36) + '-' + k, name, qty, unit: UNID.includes(i.unit) ? i.unit : 'un', cat: CATS.includes(i.cat) ? i.cat : 'Outros', price, date: dia, checked: true, priceSource: 'paid', lineTotal, originalText: name };
+    return { id: 'ia-' + agora.getTime().toString(36) + '-' + k, name, qty, unit: UNID.includes(i.unit) ? i.unit : 'un', cat: ehCasaConsumo(name) ? 'Casa e bem-estar' : CATS.includes(i.cat) ? i.cat : 'Outros', price, date: dia, checked: true, priceSource: 'paid', lineTotal, originalText: name };
   });
   const soma = r2(items.reduce((a: number, i: any) => a + i.lineTotal, 0));
   const total = num(n.total) > 0 ? r2(num(n.total)) : soma;
   return {
-    id: 'nota-' + agora.getTime().toString(36), date: dia, store: String(n.store || 'Mercado').slice(0, 100),
+    id: 'nota-' + agora.getTime().toString(36), date: dia, store: String(n.store || 'Mercado').slice(0, 100), lugar: lugarDaNota(String(n.store || ''), items),
     ...(n.ref ? { receiptRef: String(n.ref).replace(/\s+/g, '').slice(0, 100) } : {}),
     total, unknown: 0, items, importBatch: 'nota-ia', ...(Math.abs(soma - total) > 0.05 ? { reviewNote: 'Soma dos itens ' + soma.toFixed(2).replace('.', ',') + ' (desconto ou item ilegível)' } : {}),
   };

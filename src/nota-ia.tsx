@@ -1,3 +1,4 @@
+import { LUGARES } from './lugar';
 import { useRef, useState } from 'react';
 import { Camera, Link2, Check, X, ScanLine } from 'lucide-react';
 import { api } from './api';
@@ -79,6 +80,7 @@ export default function NotaIA({ data, save, busy }: { data: any; save: (d: any,
     {erro && <p className="alert" role="alert">{erro}</p>}
     {nota && <div className="nota-preview">
       <div className="nota-cab"><div><b>{nota.store}</b><small>{new Date(nota.date).toLocaleDateString('pt-BR')} · {nota.items.length} itens</small></div><strong>{money(nota.total)}</strong></div>
+      <div className="nota-lugar"><small>Onde foi a compra?</small><div className="chips">{LUGARES.map(l => <button key={l} type="button" className={(nota.lugar || 'Supermercado') === l ? 'selected' : ''} onClick={() => setNota({ ...nota, lugar: l })}>{l}</button>)}</div></div>
       {nota.reviewNote && <p className="notice">{nota.reviewNote}. Confira antes de salvar.</p>}
       {dup && <p className="notice">Parece que essa compra já está registrada (mesma nota ou mesmo dia e valor).</p>}
       <ul>{nota.items.map((i: any) => <li key={i.id}><span>{i.name}<small>{String(i.qty).replace('.', ',')} {i.unit} × {money(i.price || 0)} · {i.cat}</small></span><b>{money(i.lineTotal)}</b><button className="icon-btn" aria-label={'Tirar ' + i.name} onClick={() => { const items = nota.items.filter((x: any) => x.id !== i.id); setNota({ ...nota, items }); }}><X size={14} /></button></li>)}</ul>
