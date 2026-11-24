@@ -474,3 +474,24 @@ html.escuro .estragou-btn,html.escuro .estragou-form{background:#2a1c1c}
 .add-mais{display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:700;color:var(--muted);background:none;padding:6px}
 html.escuro .add-grupo.on{background:#22291d}
 .add-nome input{min-width:0}.add-grupo .chips{flex-wrap:wrap!important;overflow:visible!important;padding:0}.add-sheet{max-height:92vh;overflow-y:auto}
+/* Rituais */
+.rit-quem{margin:4px 0 10px}.rit-barra{height:8px;border-radius:6px;background:var(--line);overflow:hidden;margin:4px 0 12px}.rit-barra i{display:block;height:100%;background:#7d9c5a;border-radius:6px;transition:width .3s}
+.rit-lista,.rit-todos{list-style:none;padding:0;margin:0}.rit-linha,.rit-todos li{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}.rit-lista li:last-child,.rit-todos li:last-child{border-bottom:0}
+.rit-check{width:34px;height:34px;flex-shrink:0;border-radius:50%;border:2px solid #b7c4a6;display:grid;place-items:center;color:#fff;background:transparent;transition:background .15s,border-color .15s}.rit-linha.feito .rit-check{background:#5d7f3f;border-color:#5d7f3f}
+.rit-linha.feito .rit-texto b{text-decoration:line-through;opacity:.55}.rit-linha.atrasado .rit-check{border-color:#e0a35a}.rit-linha.atrasado small{color:#b45309}
+.rit-emoji{font-size:20px;width:26px;text-align:center;flex-shrink:0}.rit-texto{flex:1;min-width:0;display:flex;flex-direction:column}.rit-texto b{font-size:15px}.rit-texto small{color:var(--muted);font-size:12px}
+.rit-h3{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin:14px 0 2px}.rit-h3.atraso{color:#b45309}.rit-dia:first-of-type .rit-h3{margin-top:8px}
+.rit-modelos{flex-wrap:wrap}.rit-acoes{display:flex;gap:2px}.rit-todos li.pausado{opacity:.55}
+.rit-agenda-topo{display:flex;gap:12px;align-items:flex-start;color:var(--green)}.rit-agenda-topo div{display:flex;flex-direction:column;color:var(--ink)}.rit-agenda-topo small{color:var(--muted);font-size:13px}
+.rit-agenda-acoes{margin-top:10px}.rit-agenda-acoes .secondary{display:inline-flex;align-items:center;gap:6px}.rit-msg{margin:8px 0 0;font-size:13px}.rit-email{display:flex;gap:8px;margin-top:10px}.rit-email input{flex:1;min-width:0}
+.rit-form form{display:flex;flex-direction:column;gap:10px}.rit-form .chips{flex-wrap:wrap;margin:0}.rit-rot{font-size:12px;font-weight:700;margin-bottom:-4px}
+.rit-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}.rit-semana button{padding:9px 0;border-radius:10px;border:1px solid var(--line);font-weight:700;font-size:12px}.rit-semana button.on{background:var(--green);color:#fff;border-color:var(--green)}
+.rit-resumo{display:flex;align-items:center;gap:6px;background:#eef2e8;border-radius:10px;padding:8px 10px;margin:0;font-size:13px;font-weight:600;color:#2f4a26}
+.text-btn.perigo{color:#b91c1c;display:flex;align-items:center;justify-content:center;gap:6px}
+html.escuro .rit-resumo{background:#22291d;color:#cfe0bd}
+/* Bloqueio */
+.trava{position:fixed;inset:0;z-index:9999;background:var(--paper,#fbf8f1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;color:var(--green)}.trava h2{margin:6px 0 0;color:var(--ink)}.trava p{margin:0}
+.trava-pontos{display:flex;gap:12px;margin:18px 0 6px}.trava-pontos i{width:13px;height:13px;border-radius:50%;border:2px solid var(--green)}.trava-pontos i.on{background:var(--green)}.trava-erro{color:#b91c1c;font-weight:700}
+.trava-teclado{display:grid;grid-template-columns:repeat(3,72px);gap:14px;margin-top:14px}.trava-teclado button{height:72px;border-radius:50%;background:#eef2e8;font-size:26px;font-weight:600;color:var(--ink);display:grid;place-items:center}.trava-teclado button:active{background:#dbe5cf}
+.trava-form{display:flex;flex-direction:column;gap:10px;margin-top:8px}.trava-form input{font-size:22px;letter-spacing:.4em;text-align:center}
+html.escuro .trava{background:#151613}html.escuro .trava-teclado button{background:#262823}

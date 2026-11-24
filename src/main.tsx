@@ -5,6 +5,7 @@ import Conectar from './conectar';
 import { conexao, lerLinkDeConexao } from './api';
 import './globals.css';
 import { iniciarTema } from './tema';
+import { Trava } from './trava';
 
 iniciarTema();
 
@@ -12,7 +13,7 @@ lerLinkDeConexao();
 
 function Raiz() {
   const [ligado, setLigado] = useState(!!conexao());
-  return ligado ? <App /> : <Conectar onPronto={() => setLigado(true)} />;
+  return ligado ? <Trava><App /></Trava> : <Conectar onPronto={() => setLigado(true)} />;
 }
 
 createRoot(document.getElementById('root')!).render(<Raiz />);
