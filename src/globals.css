@@ -495,3 +495,16 @@ html.escuro .rit-resumo{background:#22291d;color:#cfe0bd}
 .trava-teclado{display:grid;grid-template-columns:repeat(3,72px);gap:14px;margin-top:14px}.trava-teclado button{height:72px;border-radius:50%;background:#eef2e8;font-size:26px;font-weight:600;color:var(--ink);display:grid;place-items:center}.trava-teclado button:active{background:#dbe5cf}
 .trava-form{display:flex;flex-direction:column;gap:10px;margin-top:8px}.trava-form input{font-size:22px;letter-spacing:.4em;text-align:center}
 html.escuro .trava{background:#151613}html.escuro .trava-teclado button{background:#262823}
+/* Casa: filtros e ocorrências */
+.casa-filtros{display:flex;flex-direction:column;gap:8px;margin:4px 0 12px}.casa-filtros .casa-busca{margin:0}.casa-filtros .casa-busca .icon-btn{width:28px;height:28px}
+.casa-filtros-selects{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.casa-filtros-selects label{display:flex;flex-direction:column;gap:3px;font-size:11px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;color:var(--muted)}.casa-filtros-selects select{width:100%;min-width:0;font-size:14px;text-transform:none;letter-spacing:0;padding:9px 8px}
+.casa-filtros-res{display:flex;align-items:center;justify-content:space-between;margin:0;font-size:13px;color:var(--muted)}.casa-filtros-res .text-btn{font-weight:700}
+.casa-consertos{list-style:none;padding:0;margin:0}.casa-consertos li{display:flex;justify-content:space-between;gap:8px;padding:2px 0}.casa-consertos li+li{border-top:1px dashed var(--line)}.casa-consertos b{white-space:nowrap}
+.casa-total b{font-size:16px}.casa-total small{display:block;color:var(--muted)}
+.ocorrencias{margin:10px 0;display:flex;flex-direction:column;gap:8px}.ocorr-tit{font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.ocorr-botoes{display:grid;grid-template-columns:1fr 1fr;gap:6px}.ocorr{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:12px;border:1px solid var(--line);font-weight:700;font-size:13px;background:var(--paper)}
+.ocorr.estragou{border-color:#f3b4b4;background:#fff5f5;color:#b91c1c}.ocorr.conserto{border-color:#bcd3a8;background:#f1f7ea;color:#2f5a1f}
+.estragou-form.conserto{border-color:#bcd3a8;background:#f7fbf2}.estragou-form.conserto b{color:#2f5a1f}.estragou-form.saida{border-color:var(--line);background:var(--paper)}.estragou-form.saida b{color:var(--ink)}
+.estragou-aviso.saiu{background:#eceae4;color:#444}
+html.escuro .ocorr.estragou,html.escuro .estragou-form.conserto{background:#22291d}html.escuro .ocorr{background:#1e1f1c}
+.ocorr-botoes{grid-template-columns:repeat(6,1fr)}.ocorr{grid-column:span 2;padding:10px 4px}.ocorr.estragou,.ocorr.conserto{grid-column:span 3}

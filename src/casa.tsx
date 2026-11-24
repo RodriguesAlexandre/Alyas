@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus, Search, Camera, ImagePlus, X, Trash2, Check, ExternalLink, Tag, Store } from 'lucide-react';
-import { CATS_CASA, COMODOS, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, limparLink, normalizarCasa, painelCasa, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
+import { CATS_CASA, COMODOS, naCasa, custoItem, SAIDAS, type Saida, melhorCotacao, resumoCasa, filtrarCasa, comprei, desfazerCompra, limparLink, normalizarCasa, painelCasa, iconeCasa, frenteMeta, type ItemCasa, type Cotacao } from './casa-logic';
 import { enviarFoto, carregarFoto, apagarFoto } from './fotos';
 import { quem } from './quem';
 import { corCat } from './cores';
@@ -73,7 +73,7 @@ function Cartao({ i, onClick }: { i: ItemCasa; onClick: () => void }) {
 export default function Casa({ data, save, busy, ready, onReload, pedido }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean; onReload?: () => void; pedido?: { status: 'temos' | 'queremos'; nome: string; det: boolean; n: number } | null }) {
   useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
   const itens: ItemCasa[] = normalizarCasa(data.casa || []);
-  const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
+  const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState(''), [comodoF, setComodoF] = useState('Todos');
   const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>(''), [tresD, setTresD] = useState<false | { movel?: string; sala?: string } | null>(false), [preset, setPreset] = useState<{ item: Partial<ItemCasa>; aviso?: Aviso } | null>(null);
   // Pedido vindo do botão único "Adicionar": cadastra direto ou abre a ficha completa já preenchida
   useEffect(() => {
@@ -82,8 +82,10 @@ export default function Casa({ data, save, busy, ready, onReload, pedido }: { da
     const novoItem = { id: 'casa-' + Date.now().toString(36), fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined, ...(pedido.status === 'queremos' ? { prioridade: 'media' } : {}), ...item } as ItemCasa;
     gravar([...itens, novoItem], pedido.nome + (pedido.status === 'temos' ? ' em Já temos' : ' em Queremos comprar')).then(ok => ok && setAberto(novoItem));
   }, [pedido?.n]);
-  const r = resumoCasa(itens);
-  const lista = filtrarCasa(itens, status, cat, busca);
+  const ativos = itens.filter(naCasa), sairam = itens.length - ativos.length;
+  const r = resumoCasa(ativos);
+  const lista = filtrarCasa(itens, status, cat, busca, comodoF);
+  const filtrando = status !== 'todos' || cat !== 'Todas' || !!busca.trim() || comodoF !== 'Todos';
   const avisos: Aviso[] = data.avisos || [];
   const gravar = async (lst: ItemCasa[], msg: string) => save({ ...data, casa: lst, ...(preset?.aviso ? { avisos: avisos.map(a => a.id === preset.aviso!.id ? { ...a, feito: new Date().toISOString() } : a) } : {}) }, msg);
   const salvarAvisos = (l: Aviso[], msg: string) => save({ ...data, avisos: l }, msg);
@@ -99,29 +101,43 @@ export default function Casa({ data, save, busy, ready, onReload, pedido }: { da
         <button className={status === 'quero' ? 'on' : ''} onClick={() => setStatus(status === 'quero' ? 'todos' : 'quero')}><b>{r.quero}</b><small>queremos comprar{r.cotando ? ' · ' + r.cotando + ' em cotação' : ''}</small>{r.previsto > 0 && <em>≈ {money(r.previsto)} pelas melhores cotações</em>}</button>
         <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>já temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)} em itens</em>}</button>
       </div>
-      {itens.length > 0 && <PainelCasa p={painelCasa(itens)} />}
-      <label className="search casa-busca"><Search size={17} /><input aria-label="Buscar item da casa" placeholder="Buscar: aspirador, pratos, cozinha…" value={busca} onChange={e => setBusca(e.target.value)} /></label>
-      <div className="chips casa-cats">{['Todas', ...CATS_CASA].map(c => <button key={c} className={cat === c ? 'selected' : ''} onClick={() => setCat(c)}>{c}</button>)}</div>
+      {ativos.length > 0 && <PainelCasa p={painelCasa(ativos)} />}
     </section>
     {abertos.length > 0 && <section className="card casa-avisos"><div className="section-title"><div><span className="eyebrow">AVISOS DA CASA</span><h2>{abertos.length} {abertos.length > 1 ? 'coisas para resolver' : 'coisa para resolver'}</h2></div></div>
       <ul>{abertos.map(a => <li key={a.id}><button className="check" aria-label="Marcar como resolvido" disabled={busy} onClick={() => salvarAvisos(avisos.map(x => x.id === a.id ? resolver(x) : x), a.repetirDias ? 'Feito ✓ · próximo lembrete agendado' : 'Resolvido ✓')}><Ok size={15} /></button>
         <button className="casa-aviso-txt" onClick={() => setTresD(a.movel ? { movel: a.movel } : { sala: a.sala })}><b>{a.texto}</b><small><span className={'tag ' + a.tipo}>{rotuloTipo(a.tipo)}</span>{a.urgencia && a.urgencia !== 'quando' ? <span className={'tag urg-' + a.urgencia}>{rotuloUrgencia(a.urgencia)}</span> : null} {ondeAviso(a)}{a.resp ? ' · ' + a.resp : ''} · ver no 3D</small></button></li>)}</ul></section>}
-    {lista.length ? (status === 'todos' ? [['Queremos comprar', lista.filter(i => i.status !== 'temos')], ['Já temos', lista.filter(i => i.status === 'temos')]] as [string, ItemCasa[]][] : [['', lista]] as [string, ItemCasa[]][]).filter(([, l]) => l.length).map(([titulo, l]) => <section key={titulo || 'lista'} className="casa-secao">
+    {itens.length > 0 && <section className="casa-filtros" aria-label="Filtrar itens da casa">
+      <label className="search casa-busca"><Search size={17} /><input aria-label="Buscar item da casa" placeholder="Nome, marca, loja…" value={busca} onChange={e => setBusca(e.target.value)} />{busca && <button className="icon-btn" aria-label="Limpar busca" onClick={() => setBusca('')}><X size={15} /></button>}</label>
+      <div className="casa-filtros-selects">
+        <label><span>Situação</span><select value={status} onChange={e => setStatus(e.target.value)}><option value="todos">Queremos e temos</option><option value="quero">Queremos comprar</option><option value="temos">Já temos</option>{sairam > 0 && <option value="saiu">Saíram de casa ({sairam})</option>}</select></label>
+        <label><span>Categoria</span><select value={cat} onChange={e => setCat(e.target.value)}><option value="Todas">Todas</option>{CATS_CASA.map(c => <option key={c}>{c}</option>)}</select></label>
+        <label><span>Cômodo</span><select value={comodoF} onChange={e => setComodoF(e.target.value)}><option value="Todos">Todos</option>{COMODOS.map(c => <option key={c}>{c}</option>)}</select></label>
+      </div>
+      {filtrando && <p className="casa-filtros-res">{lista.length} {lista.length === 1 ? 'item' : 'itens'}<button className="text-btn" onClick={() => { setStatus('todos'); setCat('Todas'); setBusca(''); setComodoF('Todos'); }}>Limpar filtros</button></p>}
+    </section>}
+    {lista.length ? (status === 'todos' ? [['Queremos comprar', lista.filter(i => i.status !== 'temos')], ['Já temos', lista.filter(i => i.status === 'temos')]] as [string, ItemCasa[]][] : [[status === 'saiu' ? 'Saíram de casa' : '', lista]] as [string, ItemCasa[]][]).filter(([, l]) => l.length).map(([titulo, l]) => <section key={titulo || 'lista'} className="casa-secao">
       {titulo && <h3 className="casa-secao-titulo">{titulo}<span>{l.length}</span></h3>}
       <div className="casa-grid">{l.map(i => <Cartao key={i.id} i={i} onClick={() => setAberto(i)} />)}</div></section>)
       : <section className="card empty"><img src="produtos/couch-and-lamp.webp" alt="" width={64} /><h3>{itens.length ? 'Nada com esse filtro' : 'Comece pelos itens da casa'}</h3><p className="muted">{itens.length ? 'Troque o filtro ou a busca.' : 'Comece pelo que mais importa: algo que vocês querem comprar (como o robô aspirador) ou os eletrônicos que já têm, com foto e garantia.'}</p>{!itens.length && <div className="casa-novos centro"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={17} /> Algo que queremos</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Camera size={17} /> Algo que já temos</button></div>}</section>}
-    {tresD !== false && <Casa3D itens={itens} avisos={avisos} layout={data.layout3d} lista={data.items || []} onSalvar={salvarParcial} inicial={tresD} onFechar={() => setTresD(false)} onAbrir={i => setAberto(i)} onSalvarAvisos={salvarAvisos}
+    {tresD !== false && <Casa3D itens={ativos} avisos={avisos} layout={data.layout3d} lista={data.items || []} onSalvar={salvarParcial} inicial={tresD} onFechar={() => setTresD(false)} onAbrir={i => setAberto(i)} onSalvarAvisos={salvarAvisos}
       onNovoItem={(comodo, nome, aviso, movel) => setPreset({ item: { comodo, name: nome || '', movel, status: aviso || !movel ? 'queremos' : 'temos', cat: aviso?.texto.match(/planta|jiboia/i) || /planta|quadro|tapete|cortina|sofá|mesa|cadeira|cama|guarda|estante|criado|puff/i.test(nome || '') ? 'Móveis e decoração' : /geladeira|fogão|micro|máquina|tv/i.test(nome || '') ? 'Eletrônicos' : 'Utensílios' }, aviso })} />}
     {(novo || aberto || preset) && <Detalhe key={aberto?.id || (preset ? 'preset' : 'novo')} inicial={aberto}
       avisosAbertos={aberto ? abertos.filter(a => a.movel && a.movel === aberto.movel || a.texto.startsWith(aberto.name + ':')) : []}
       onEstragou={async (it, texto, urgencia) => { const sala = comodoDoItem(it.comodo)?.id; const a = novoAviso(it.name + ': ' + (texto.trim() || 'estragou'), 'manutencao', it.movel ? { movel: it.movel } : { sala }, quem() || undefined, { urgencia }); return save({ ...data, avisos: [...avisos, a] }, 'Aviso de conserto criado'); }}
+      onConserto={async (it, m, resolverAvisos) => {
+        const novo = { ...it, manutencoes: [...(it.manutencoes || []), m].slice(-100) };
+        const doItem = resolverAvisos ? abertos.filter(a => a.movel && a.movel === it.movel || a.texto.startsWith(it.name + ':')).map(a => a.id) : [];
+        const ok = await save({ ...data, casa: itens.map(x => x.id === it.id ? novo : x), avisos: avisos.map(a => doItem.includes(a.id) ? resolver(a) : a) }, m.valor ? `Conserto lançado · ${money(m.valor)}` : 'Conserto registrado');
+        return ok ? novo : null; }}
+      onSaida={async (it, saida) => { const novo = { ...it } as ItemCasa; if (saida) novo.saida = saida; else delete novo.saida;
+        const ok = await gravar(itens.map(x => x.id === it.id ? novo : x), saida ? it.name + ': ' + (SAIDAS.find(x => x[0] === saida.tipo)?.[2] || '').toLowerCase() : it.name + ' voltou para Já temos'); return ok ? novo : null; }}
       onVer3D={it => { setAberto(null); setTresD(it.movel ? { movel: it.movel } : { sala: comodoDoItem(it.comodo)?.id }); }} preset={preset?.item} statusNovo={novo || 'queremos'} busy={busy} onReload={onReload} onClose={() => { setNovo(''); setAberto(null); setPreset(null); }}
       onSave={async (it, msg) => { const ok = await gravar(itens.some(x => x.id === it.id) ? itens.map(x => x.id === it.id ? it : x) : [...itens, it], msg); if (ok) { setNovo(''); setPreset(null); setAberto(it); } return ok; }}
       onDelete={async it => { if (await gravar(itens.filter(x => x.id !== it.id), it.name + ' apagado')) { it.fotos.forEach(apagarFoto); setAberto(null); } }} />}
   </>;
 }
 
-function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete, onReload, onEstragou, onVer3D, avisosAbertos = [] }: { onEstragou?: (i: ItemCasa, texto: string, u: Urgencia) => Promise<any>; onVer3D?: (i: ItemCasa) => void; avisosAbertos?: Aviso[]; inicial: ItemCasa | null; preset?: Partial<ItemCasa>; statusNovo: 'temos' | 'queremos'; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
+function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete, onReload, onEstragou, onConserto, onSaida, onVer3D, avisosAbertos = [] }: { onEstragou?: (i: ItemCasa, texto: string, u: Urgencia) => Promise<any>; onConserto?: (i: ItemCasa, m: { data: string; texto: string; valor?: number }, resolver: boolean) => Promise<ItemCasa | null>; onSaida?: (i: ItemCasa, s: Saida | null) => Promise<ItemCasa | null>; onVer3D?: (i: ItemCasa) => void; avisosAbertos?: Aviso[]; inicial: ItemCasa | null; preset?: Partial<ItemCasa>; statusNovo: 'temos' | 'queremos'; busy: boolean; onReload?: () => void; onClose: () => void; onSave: (i: ItemCasa, m: string) => Promise<any>; onDelete: (i: ItemCasa) => void }) {
   const base: ItemCasa = inicial || { id: 'casa-' + Date.now().toString(36), name: '', cat: 'Utensílios', status: statusNovo, prioridade: statusNovo === 'queremos' ? 'media' : undefined, fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined, ...(inicial ? {} : preset || {}) } as ItemCasa;
   const [it, setIt] = useState<ItemCasa>(base);
   const [editando, setEditando] = useState(!inicial);
@@ -238,8 +254,10 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
         {it.preco != null && <><dt>{it.status === 'temos' ? 'Pago' : 'Estimado'}</dt><dd>{money(it.preco)}{it.loja ? ' · ' + it.loja : ''}</dd></>}
         {it.dataCompra && <><dt>Comprado em</dt><dd>{new Date(it.dataCompra + 'T12:00').toLocaleDateString('pt-BR')}</dd></>}
         {it.garantiaAte && <><dt>Garantia</dt><dd>{(() => { const d = Math.ceil((Date.parse(it.garantiaAte + 'T12:00') - Date.now()) / 864e5); return 'até ' + new Date(it.garantiaAte + 'T12:00').toLocaleDateString('pt-BR') + (d < 0 ? ' · vencida' : d <= 60 ? ` · faltam ${d} dias` : ''); })()}</dd></>}
-        {it.manutencoes?.length ? <><dt>Manutenções</dt><dd>{it.manutencoes.slice(-3).reverse().map(m => new Date(m.data).toLocaleDateString('pt-BR') + ' · ' + m.texto + (m.valor ? ' (' + money(m.valor) + ')' : '')).join(' — ')}</dd></> : null}
         {it.note && <><dt>Observações</dt><dd>{it.note}</dd></>}
+        {it.manutencoes?.length ? <><dt>Consertos ({it.manutencoes.length})</dt><dd><ul className="casa-consertos">{[...it.manutencoes].reverse().map((m, k) => <li key={k}><span>{new Date(m.data).toLocaleDateString('pt-BR')} · {m.texto}</span><b>{m.valor ? money(m.valor) : '—'}</b></li>)}</ul></dd></> : null}
+        {it.saida && <><dt>Saiu de casa</dt><dd>{SAIDAS.find(x => x[0] === it.saida!.tipo)?.[2]} em {new Date(it.saida.data + (it.saida.data.length <= 10 ? 'T12:00' : '')).toLocaleDateString('pt-BR')}{it.saida.para ? (it.saida.tipo === 'vendeu' ? ' para ' : ' para ') + it.saida.para : ''}{it.saida.valor ? ' por ' + money(it.saida.valor) : ''}{it.saida.nota ? ' · ' + it.saida.nota : ''}</dd></>}
+        {it.status === 'temos' && (it.manutencoes?.some(m => m.valor) || it.saida?.valor) ? (() => { const c = custoItem(it); return <><dt>Total gasto</dt><dd className="casa-total"><b>{money(c.total)}</b><small>{c.compra ? 'compra ' + money(c.compra) + ' + ' : 'sem valor de compra · '}{c.n} {c.n === 1 ? 'conserto' : 'consertos'} {money(c.consertos)}{c.venda ? ` · voltou ${money(c.venda)} na venda (${c.total - c.venda >= 0 ? 'custo final ' + money(c.total - c.venda) : 'sobrou ' + money(c.venda - c.total)})` : ''}</small></dd></>; })() : null}
         {it.status !== 'temos' && it.meta ? <><dt>Meta</dt><dd>{money(it.meta)}{(() => { const f = frenteMeta(it); return f ? (f.diferenca <= 0 ? ' · a melhor cotação já está dentro!' : ' · faltam ' + money(f.diferenca)) : ''; })()}</dd></> : null}
       </dl>
       {it.radar && it.status !== 'temos' && <div className={'casa-radar ' + (/comprar/i.test(it.radar.decisao) ? 'ok' : /validar/i.test(it.radar.decisao) ? 'warn' : '')}>
@@ -263,7 +281,7 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
           <button className="primary" disabled={busy}><Plus size={16} /> Anotar cotação</button>
         </form>
       </div>}
-      {it.status === 'temos' && onEstragou && <Estragou it={it} busy={busy} abertos={avisosAbertos} onEstragou={onEstragou} onVer3D={onVer3D} />}
+      {it.status === 'temos' && onEstragou && onConserto && onSaida && <Ocorrencias it={it} busy={busy} abertos={avisosAbertos} onEstragou={onEstragou} onVer3D={onVer3D} onConserto={(m, r) => onConserto(it, m, r).then(v => { if (v) setIt(v); return !!v; })} onSaida={sd => onSaida(it, sd).then(v => { if (v) setIt(v); return !!v; })} />}
       <div className="casa-rodape">
         <button className="secondary" onClick={() => setEditando(true)}>Editar dados</button>
         {it.status !== 'temos' && !it.cotacoes.length && <button className="secondary" disabled={busy} onClick={() => onSave(comprei(it), 'Comprado! ' + it.name + ' agora está em Temos').then(ok => ok && setIt(comprei(it)))}>Já compramos</button>}
@@ -276,16 +294,46 @@ function Detalhe({ inicial, preset, statusNovo, busy, onClose, onSave, onDelete,
   </section></div>;
 }
 
-/** Botão "Estragou": abre um aviso de conserto ligado ao objeto (e aparece no 3D). */
-function Estragou({ it, busy, abertos, onEstragou, onVer3D }: { it: ItemCasa; busy: boolean; abertos: Aviso[]; onEstragou: (i: ItemCasa, t: string, u: Urgencia) => Promise<any>; onVer3D?: (i: ItemCasa) => void }) {
-  const [aberto, setAberto] = useState(false), [texto, setTexto] = useState(''), [u, setU] = useState<Urgencia>('semana'), [feito, setFeito] = useState(false);
-  if (abertos.length && !aberto) return <div className="estragou-aviso"><AlertTriangle size={16} /><span><b>Em conserto</b><small>{abertos.map(a => a.texto).join(' · ')}</small></span><div className="estragou-mini">{onVer3D && <button className="mini" onClick={() => onVer3D(it)}>Ver no 3D</button>}<button className="mini" onClick={() => setAberto(true)}>Outro problema</button></div></div>;
-  if (feito) return <div className="estragou-aviso ok"><Check size={16} /><span><b>Aviso criado</b><small>Aparece em Avisos da casa{it.movel ? ' e no objeto da maquete 3D' : ' e no cômodo do 3D'}.</small></span>{onVer3D && <button className="mini" onClick={() => onVer3D(it)}>Ver no 3D</button>}</div>;
-  return aberto ? <form className="estragou-form" onSubmit={async e => { e.preventDefault(); if (await onEstragou(it, texto, u)) { setFeito(true); setAberto(false); } }}>
+/** O que aconteceu com o item: estragou (aviso + conserto com valor), doou, vendeu ou descartou. */
+function Ocorrencias({ it, busy, abertos, onEstragou, onVer3D, onConserto, onSaida }: { it: ItemCasa; busy: boolean; abertos: Aviso[]; onEstragou: (i: ItemCasa, t: string, u: Urgencia) => Promise<any>; onVer3D?: (i: ItemCasa) => void;
+  onConserto: (m: { data: string; texto: string; valor?: number }, resolver: boolean) => Promise<boolean>; onSaida: (s: Saida | null) => Promise<boolean> }) {
+  const hoje = new Date().toLocaleDateString('sv-SE');
+  const [modo, setModo] = useState<'' | 'estragou' | 'conserto' | Saida['tipo']>(''), [texto, setTexto] = useState(''), [u, setU] = useState<Urgencia>('semana'), [valor, setValor] = useState(''), [dia, setDia] = useState(hoje), [para, setPara] = useState('');
+  const num = (v: string) => { const x = Number(v.replace(/\s|R\$/g, '').replace(/\./g, '').replace(',', '.')); return x > 0 ? Math.round(x * 100) / 100 : undefined; };
+  const fechar = () => { setModo(''); setTexto(''); setValor(''); setPara(''); setDia(hoje); };
+  const naGarantia = it.garantiaAte && Date.parse(it.garantiaAte + 'T23:59') >= Date.now();
+  if (it.saida) return <div className="estragou-aviso saiu"><Check size={16} /><span><b>{SAIDAS.find(x => x[0] === it.saida!.tipo)?.[2]}</b><small>Fica guardado no histórico, fora dos totais de "Já temos".</small></span><button className="mini" disabled={busy} onClick={() => onSaida(null)}>Voltou para casa</button></div>;
+  if (modo === 'estragou') return <form className="estragou-form" onSubmit={async e => { e.preventDefault(); if (await onEstragou(it, texto, u)) fechar(); }}>
     <b><AlertTriangle size={15} /> O que aconteceu com {it.name}?</b>
     <input autoFocus maxLength={150} placeholder="Ex.: parou de ligar, botão quebrado, vazando" value={texto} onChange={e => setTexto(e.target.value)} />
     <div className="chips">{URGENCIAS.map(([k, t]) => <button type="button" key={k} className={'urg-' + k + (u === k ? ' selected' : '')} onClick={() => setU(k)}>{t}</button>)}</div>
-    {it.garantiaAte && Date.parse(it.garantiaAte + 'T23:59') >= Date.now() && <p className="notice">Ainda está na garantia (até {new Date(it.garantiaAte + 'T12:00').toLocaleDateString('pt-BR')}){it.loja ? ' · comprado na ' + it.loja : ''}. Vale acionar antes de pagar conserto.</p>}
-    <div className="estragou-botoes"><button className="perigo" disabled={busy}>Abrir aviso de conserto</button><button type="button" className="secondary" onClick={() => setAberto(false)}>Cancelar</button></div>
-  </form> : <button className="estragou-btn" onClick={() => setAberto(true)}><AlertTriangle size={16} /> Estragou</button>;
+    {naGarantia && <p className="notice">Ainda está na garantia (até {new Date(it.garantiaAte + 'T12:00').toLocaleDateString('pt-BR')}){it.loja ? ' · comprado na ' + it.loja : ''}. Vale acionar antes de pagar conserto.</p>}
+    <div className="estragou-botoes"><button className="perigo" disabled={busy}>Abrir aviso de conserto</button><button type="button" className="secondary" onClick={fechar}>Cancelar</button></div>
+  </form>;
+  if (modo === 'conserto') return <form className="estragou-form conserto" onSubmit={async e => { e.preventDefault(); if (await onConserto({ data: new Date(dia + 'T12:00').toISOString(), texto: (texto.trim() || 'Conserto').slice(0, 200), ...(num(valor) ? { valor: num(valor) } : {}) }, true)) fechar(); }}>
+    <b><Ok size={15} /> Lançar conserto de {it.name}</b>
+    <input autoFocus maxLength={200} placeholder="O que foi feito? Ex.: troca da placa, técnico" value={texto} onChange={e => setTexto(e.target.value)} />
+    <div className="form-grid"><label>Valor (R$)<input inputMode="decimal" placeholder="0,00" value={valor} onChange={e => setValor(e.target.value)} /></label><label>Dia<input type="date" value={dia} max={hoje} onChange={e => setDia(e.target.value || hoje)} /></label></div>
+    {abertos.length > 0 && <small className="muted">Os avisos abertos deste item serão marcados como resolvidos.</small>}
+    <div className="estragou-botoes"><button className="primary" disabled={busy}>Lançar conserto</button><button type="button" className="secondary" onClick={fechar}>Cancelar</button></div>
+  </form>;
+  if (modo) { const s = SAIDAS.find(x => x[0] === modo)!; return <form className="estragou-form saida" onSubmit={async e => { e.preventDefault(); if (await onSaida({ tipo: modo, data: dia, ...(modo === 'vendeu' && num(valor) ? { valor: num(valor) } : {}), ...(para.trim() ? { para: para.trim().slice(0, 80) } : {}), ...(texto.trim() ? { nota: texto.trim().slice(0, 200) } : {}) })) fechar(); }}>
+    <b>{s[2]} {it.name}</b>
+    <div className="form-grid">{modo === 'vendeu' && <label>Vendemos por (R$)<input autoFocus inputMode="decimal" placeholder="0,00" value={valor} onChange={e => setValor(e.target.value)} /></label>}<label>Dia<input type="date" value={dia} max={hoje} onChange={e => setDia(e.target.value || hoje)} /></label></div>
+    {modo !== 'descartou' && <input maxLength={80} placeholder={modo === 'doou' ? 'Para quem? (opcional)' : 'Para quem / onde? Ex.: OLX (opcional)'} value={para} onChange={e => setPara(e.target.value)} />}
+    <input maxLength={200} placeholder="Observação (opcional)" value={texto} onChange={e => setTexto(e.target.value)} />
+    <small className="muted">O item sai de "Já temos" e fica em "Saíram de casa", com o histórico guardado.</small>
+    <div className="estragou-botoes"><button className="primary" disabled={busy}>Confirmar</button><button type="button" className="secondary" onClick={fechar}>Cancelar</button></div>
+  </form>; }
+  return <div className="ocorrencias">
+    {abertos.length > 0 && <div className="estragou-aviso"><AlertTriangle size={16} /><span><b>Em conserto</b><small>{abertos.map(a => a.texto).join(' · ')}</small></span><div className="estragou-mini">{onVer3D && <button className="mini" onClick={() => onVer3D(it)}>Ver no 3D</button>}</div></div>}
+    <span className="ocorr-tit">O que aconteceu?</span>
+    <div className="ocorr-botoes">
+      <button className="ocorr estragou" onClick={() => setModo('estragou')}><AlertTriangle size={16} /> Estragou</button>
+      <button className="ocorr conserto" onClick={() => setModo('conserto')}><Ok size={16} /> {abertos.length ? 'Consertado' : 'Lançar conserto'}</button>
+      <button className="ocorr" onClick={() => setModo('doou')}>🤝 Doou</button>
+      <button className="ocorr" onClick={() => setModo('vendeu')}>💰 Vendeu</button>
+      <button className="ocorr" onClick={() => setModo('descartou')}>🗑️ Descartou</button>
+    </div>
+  </div>;
 }

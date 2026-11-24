@@ -15,7 +15,17 @@ export type ItemCasa = {
   medidas?: { l: number; p: number; a: number };
   movel?: string; garantiaAte?: string; notaFoto?: string; manutencoes?: { data: string; texto: string; valor?: number }[];
   prioridade?: 'alta' | 'media' | 'baixa'; meta?: number | null;
+  saida?: Saida;
 };
+export type Saida = { tipo: 'doou' | 'vendeu' | 'descartou'; data: string; valor?: number; para?: string; nota?: string };
+export const SAIDAS: [Saida['tipo'], string, string][] = [['doou', 'Doou', 'Doamos'], ['vendeu', 'Vendeu', 'Vendemos'], ['descartou', 'Descartou', 'Descartamos']];
+/** Itens que ainda estão em casa (ou nos planos): sem doação, venda ou descarte. */
+export const naCasa = (i: ItemCasa) => !i.saida;
+/** Quanto já foi gasto com o item: compra + consertos (e o que voltou numa venda). */
+export function custoItem(i: ItemCasa) {
+  const consertos = (i.manutencoes || []).reduce((a, m) => a + (m.valor || 0), 0), compra = i.status === 'temos' ? i.preco || 0 : 0;
+  return { compra, consertos, n: (i.manutencoes || []).length, venda: i.saida?.tipo === 'vendeu' ? i.saida.valor || 0 : 0, total: Math.round((compra + consertos) * 100) / 100 };
+}
 const n = (s: string) => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 export function melhorCotacao(i: ItemCasa): Cotacao | null {
@@ -33,9 +43,9 @@ export function resumoCasa(itens: ItemCasa[]) {
 const PRI: Record<string, number> = { alta: 0, media: 1, baixa: 2 };
 /** Quanto falta (ou sobra) entre a melhor cotação e a meta de preço. */
 export function frenteMeta(i: ItemCasa) { const m = melhorCotacao(i); if (!m || !i.meta) return null; return { melhor: m.preco, meta: i.meta, diferenca: Math.round((m.preco - i.meta) * 100) / 100 }; }
-export function filtrarCasa(itens: ItemCasa[], status: string, cat: string, busca: string) {
+export function filtrarCasa(itens: ItemCasa[], status: string, cat: string, busca: string, comodo = 'Todos') {
   const b = n(busca.trim());
-  return itens.filter(i => (status === 'todos' || i.status === status || (status === 'quero' && i.status !== 'temos')) && (cat === 'Todas' || i.cat === cat) &&
+  return itens.filter(i => (status === 'saiu' ? !!i.saida : !i.saida && (status === 'todos' || i.status === status || (status === 'quero' && i.status !== 'temos'))) && (cat === 'Todas' || i.cat === cat) && (comodo === 'Todos' || (i.comodo || 'Outro') === comodo) &&
     (!b || [i.name, i.marca, i.modelo, i.comodo, i.note, i.loja].some(x => n(x || '').includes(b))))
     .sort((a, b2) => (PRI[a.prioridade || 'media'] - PRI[b2.prioridade || 'media']) || a.name.localeCompare(b2.name, 'pt-BR'));
 }
