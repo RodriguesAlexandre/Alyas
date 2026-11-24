@@ -463,3 +463,14 @@ html.escuro .c3d-colisao{background:#2a2c27}html.escuro .c3d-catalogo{background
 .estragou-aviso{display:flex;align-items:center;gap:10px;border-radius:12px;padding:10px 12px;margin:10px 0;background:#fdf0d9;color:#7c3d06}.estragou-aviso span{flex:1;min-width:0}.estragou-aviso small{display:block;font-size:12px}.estragou-aviso.ok{background:#e3eedb;color:#24451f}.estragou-aviso .mini{font-size:11px;font-weight:700;padding:6px 10px;border-radius:8px;background:#fff;color:inherit}
 html.escuro .estragou-btn,html.escuro .estragou-form{background:#2a1c1c}
 .estragou-mini{display:flex;flex-direction:column;gap:4px}
+/* Botão único de adicionar */
+.add-sheet h2{margin:2px 0 12px}.add-sheet form{display:flex;flex-direction:column;gap:10px}
+.add-nome{display:flex;gap:8px;align-items:center}.add-nome input{flex:1;font-size:17px;padding:13px 14px}
+.add-qtd{display:flex;align-items:center;gap:2px;border:1px solid var(--line);border-radius:12px;padding:3px}.add-qtd button{width:34px;height:38px;display:grid;place-items:center;border-radius:9px}.add-qtd b{min-width:22px;text-align:center;font-variant-numeric:tabular-nums}
+.add-sug{flex-wrap:wrap;margin:0}.add-sug button{font-size:12px;padding:6px 10px}
+.add-destinos{display:flex;flex-direction:column;gap:6px}.add-grupo{border:1px solid var(--line);border-radius:14px;padding:9px 10px;transition:border-color .15s,background .15s}.add-grupo.on{border-color:var(--green);background:#f3f7ee}
+.add-grupo small{display:flex;align-items:center;gap:6px;font-weight:800;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}.add-grupo.on small{color:var(--green)}.add-grupo .chips{flex-wrap:wrap;margin:0}
+.add-cat{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}.add-cat select{flex:1}
+.add-mais{display:flex;align-items:center;justify-content:center;gap:4px;font-size:13px;font-weight:700;color:var(--muted);background:none;padding:6px}
+html.escuro .add-grupo.on{background:#22291d}
+.add-nome input{min-width:0}.add-grupo .chips{flex-wrap:wrap!important;overflow:visible!important;padding:0}.add-sheet{max-height:92vh;overflow-y:auto}

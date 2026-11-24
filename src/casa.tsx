@@ -11,6 +11,7 @@ import { PainelCasa } from './casa-painel';
 import { ondeAviso, rotuloTipo, rotuloUrgencia, pendentes, resolver, ordemUrgencia, novoAviso, URGENCIAS, type Aviso, type Urgencia } from './avisos';
 import { comodoDoItem } from './planta';
 import { AlertTriangle } from 'lucide-react';
+import { catCasa } from './adicionar';
 import { Wrench, Check as Ok, Link2, Loader2 } from 'lucide-react';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -69,11 +70,18 @@ function Cartao({ i, onClick }: { i: ItemCasa; onClick: () => void }) {
   </button>;
 }
 
-export default function Casa({ data, save, busy, ready, onReload }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean; onReload?: () => void }) {
+export default function Casa({ data, save, busy, ready, onReload, pedido }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean; onReload?: () => void; pedido?: { status: 'temos' | 'queremos'; nome: string; det: boolean; n: number } | null }) {
   useEffect(() => { if (ready) puxarRadar(false, onReload); }, [ready]);
   const itens: ItemCasa[] = normalizarCasa(data.casa || []);
   const [status, setStatus] = useState('todos'), [cat, setCat] = useState('Todas'), [busca, setBusca] = useState('');
   const [aberto, setAberto] = useState<ItemCasa | null>(null), [novo, setNovo] = useState<'' | 'temos' | 'queremos'>(''), [tresD, setTresD] = useState<false | { movel?: string; sala?: string } | null>(false), [preset, setPreset] = useState<{ item: Partial<ItemCasa>; aviso?: Aviso } | null>(null);
+  // Pedido vindo do botão único "Adicionar": cadastra direto ou abre a ficha completa já preenchida
+  useEffect(() => {
+    if (!pedido) return; const item = { name: pedido.nome, status: pedido.status, cat: catCasa(pedido.nome) } as Partial<ItemCasa>;
+    if (pedido.det) { setNovo(pedido.status); setPreset({ item }); return; }
+    const novoItem = { id: 'casa-' + Date.now().toString(36), fotos: [], cotacoes: [], criado: new Date().toISOString(), por: quem() || undefined, ...(pedido.status === 'queremos' ? { prioridade: 'media' } : {}), ...item } as ItemCasa;
+    gravar([...itens, novoItem], pedido.nome + (pedido.status === 'temos' ? ' em Já temos' : ' em Queremos comprar')).then(ok => ok && setAberto(novoItem));
+  }, [pedido?.n]);
   const r = resumoCasa(itens);
   const lista = filtrarCasa(itens, status, cat, busca);
   const avisos: Aviso[] = data.avisos || [];
@@ -85,7 +93,7 @@ export default function Casa({ data, save, busy, ready, onReload }: { data: any;
   return <>
     <section className="card casa-topo">
       <div className="section-title"><div><span className="eyebrow">ITENS DA CASA</span><h2>Nossa casa, item por item</h2><p className="muted">O que já temos, o que estamos cotando e o que queremos comprar, com fotos.</p></div>
-        <div className="casa-novos"><button className="primary" disabled={!ready || busy} onClick={() => setNovo('queremos')}><Plus size={18} /> Queremos comprar</button><button className="secondary" disabled={!ready || busy} onClick={() => setNovo('temos')}><Plus size={18} /> Já temos</button></div></div>
+</div>
       <button className="casa-3d-btn" onClick={() => setTresD(null)}><span><Box size={20} /></span><span><b>Ver a casa em 3D</b><small>Maquete e planta do apê: toque nos objetos para ver propriedades e anotar avisos</small></span></button>
       <div className="casa-kpis duas">
         <button className={status === 'quero' ? 'on' : ''} onClick={() => setStatus(status === 'quero' ? 'todos' : 'quero')}><b>{r.quero}</b><small>queremos comprar{r.cotando ? ' · ' + r.cotando + ' em cotação' : ''}</small>{r.previsto > 0 && <em>≈ {money(r.previsto)} pelas melhores cotações</em>}</button>
