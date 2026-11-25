@@ -586,3 +586,13 @@ html.escuro .rcal-col,html.escuro .rcal-dia{background:#22241f}html.escuro .rcal
 /* Filtro Todos / Para comprar / Acabando: blocos com número em cima, sem apertar */
 .supply-filters{gap:8px!important}.supply-filters button{flex-direction:column-reverse!important;align-items:center!important;justify-content:center!important;gap:1px!important;padding:9px 6px!important;border-radius:14px!important;font-size:12px!important;line-height:1.2;white-space:nowrap;min-height:58px}
 .supply-filters button span{background:none!important;padding:0!important;font-size:18px!important;font-weight:800;line-height:1.1;color:inherit!important}
+/* Card de produto (Nossos produtos) mais compacto */
+.catalog-product{padding:10px 12px!important;gap:0}.catalog-product-top{align-items:center!important;gap:8px!important;margin-bottom:10px}
+.catalog-product-top .produto-icone,.catalog-product-top>span:first-child,.catalog-product-top>img:first-child{width:40px!important;height:40px!important;flex-shrink:0}
+.catalog-product h4{margin:0!important;flex:1;min-width:0;font-size:15px!important;line-height:1.25}
+.catalog-product-top .icon-btn{width:32px!important;height:32px!important}
+.supply-actions{margin:0 0 6px!important;gap:6px!important}.supply-action{min-height:40px!important;flex-direction:row!important;gap:5px!important;padding:6px 4px!important;font-size:12px!important;border-radius:10px!important}
+.last-purchase{font-size:11.5px!important;margin:2px 0 0!important;color:var(--muted)}.catalog-product>small{font-size:11px}
+.catalog-grid{gap:8px!important}
+.catalog-product-top .product-icon{width:42px!important;height:42px!important;min-width:42px;border-radius:12px}
+.supply-action{white-space:nowrap;font-size:11.5px!important;gap:4px!important}.supply-action svg{width:15px;height:15px;flex-shrink:0}
