@@ -1,6 +1,6 @@
 // Alyas: abre mesmo com sinal fraco. Página: rede primeiro. Arquivos estáticos: cache primeiro.
 const CACHE = 'alyas-v__BUILD__';
-self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'favicon.svg']).catch(() => {}))); });
+self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'favicon.svg', 'icon-192.png', 'manifest.webmanifest']).then(() => c.addAll(['__ASSETS__'])).catch(() => {}))); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== 'aleyas-cfg').map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
@@ -16,6 +16,7 @@ self.addEventListener('fetch', e => {
 // Notificações: o push chega vazio; aqui buscamos na planilha o que mudou e mostramos o aviso.
 self.addEventListener('push', e => {
   e.waitUntil((async () => {
+    try { (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).forEach(c => c.postMessage({ tipo: 'sync' })); } catch (err) { /* */ }
     let titulo = 'AleYas', corpo = 'Tem novidade no app', aba = '';
     try {
       const cfg = await (await (await caches.open('aleyas-cfg')).match('cfg')).json();

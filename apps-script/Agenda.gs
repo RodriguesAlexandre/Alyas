@@ -89,7 +89,7 @@ function sincronizarAgendaAuto() {
   const c = lerCasa(); if (!c.ok || !c.data) return;
   const hoje = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
   const rs = (c.data.rituais || []).map(function (r) { const x = JSON.parse(JSON.stringify(r)); delete x.feitos; x.primeira = proximaRitual(r, hoje); return x; });
-  sincronizarAgenda({ rituais: rs }); pr.setProperty('AGENDA_REV', rev);
+  sincronizarAgenda({ rituais: rs }); try { marcarFeitosNaAgenda(c.data); } catch (e) { /* segue */ } pr.setProperty('AGENDA_REV', rev);
 }
 /** Rode uma vez no editor: liga o gatilho de 1 em 1 minuto. */
 function ligarSincroniaAgenda() {

@@ -172,6 +172,7 @@ function tratar(p) {
     case 'pushInscrever': return pushInscrever(p);
     case 'pushNotificar': return pushNotificar(p);
     case 'pushUlt': return pushUlt(p);
+    case 'adicionar': return adicionarRapido(p);
     case 'planilha': return { ok: true, url: SpreadsheetApp.getActive().getUrl(), nome: SpreadsheetApp.getActive().getName() };
     default: return falha('Ação desconhecida.', 400);
   }

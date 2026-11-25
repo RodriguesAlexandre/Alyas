@@ -1,6 +1,6 @@
 // Alyas: abre mesmo com sinal fraco. Página: rede primeiro. Arquivos estáticos: cache primeiro.
-const CACHE = 'alyas-vmwvegzjd';
-self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'favicon.svg']).catch(() => {}))); });
+const CACHE = 'alyas-vmwvev1wj';
+self.addEventListener('install', e => { self.skipWaiting(); e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./', 'favicon.svg', 'icon-192.png', 'manifest.webmanifest']).then(() => c.addAll(["assets/chunk-parvced0.js","assets/chunk-scx5039g.js","assets/chunk-3j5z8mn9.js","assets/chunk-0e4772bd.js","assets/chunk-93sg96mm.js","assets/chunk-xz6akm8e.js","assets/chunk-bhg4jyng.js","assets/chunk-shcmqr5b.js","assets/chunk-twr60nh4.js","assets/chunk-ap5agdjb.js","assets/chunk-dxcs45pk.js","assets/main-n88y65vz.js","assets/chunk-v6m9fssy.js","assets/chunk-4yg4zpan.js","assets/chunk-631v5ejf.js","assets/chunk-ch57t00q.js","assets/chunk-sdb0e0ws.js","assets/chunk-thnxvcxt.js","assets/chunk-bc93vkpk.js","assets/chunk-9jpcgrrr.js","assets/chunk-mmaxyses.js","assets/chunk-vkr7sngb.js","assets/chunk-p1pwwsd8.js","assets/chunk-bc9rwyqe.js","assets/main-bmxz1s4g.css","assets/chunk-s2nw1hfw.js","assets/chunk-ydtsr1yk.js","assets/chunk-272xqhwe.js","assets/chunk-k3p342h8.js","assets/chunk-9ghpvsmh.js"])).catch(() => {}))); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== 'aleyas-cfg').map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener('fetch', e => {
   const u = new URL(e.request.url);
@@ -16,6 +16,7 @@ self.addEventListener('fetch', e => {
 // Notificações: o push chega vazio; aqui buscamos na planilha o que mudou e mostramos o aviso.
 self.addEventListener('push', e => {
   e.waitUntil((async () => {
+    try { (await self.clients.matchAll({ type: 'window', includeUncontrolled: true })).forEach(c => c.postMessage({ tipo: 'sync' })); } catch (err) { /* */ }
     let titulo = 'AleYas', corpo = 'Tem novidade no app', aba = '';
     try {
       const cfg = await (await (await caches.open('aleyas-cfg')).match('cfg')).json();

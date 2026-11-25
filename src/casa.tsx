@@ -102,6 +102,8 @@ export default function Casa({ data, save, busy, ready, onReload, pedido }: { da
         <button className={status === 'temos' ? 'on' : ''} onClick={() => setStatus(status === 'temos' ? 'todos' : 'temos')}><b>{r.temos}</b><small>já temos</small>{r.valorTemos > 0 && <em>{money(r.valorTemos)} em itens</em>}</button>
       </div>
       {ativos.length > 0 && <PainelCasa p={painelCasa(ativos)} />}
+      {(() => { const ano = new Date().getFullYear(), ms = itens.flatMap(i => (i.manutencoes || []).filter(m => new Date(m.data).getFullYear() === ano).map(m => ({ ...m, item: i.name }))); if (!ms.length) return null; const total = ms.reduce((a, m) => a + (m.valor || 0), 0), porItem = new Map<string, number>(); ms.forEach(m => porItem.set(m.item, (porItem.get(m.item) || 0) + (m.valor || 0))); const top = [...porItem.entries()].sort((a, b) => b[1] - a[1])[0];
+        return <p className="casa-consertos-resumo"><Wrench size={15} /> <span><b>{ms.length} {ms.length === 1 ? 'conserto' : 'consertos'} em {ano}</b> · {money(total)}{top && top[1] > 0 ? ` · o que mais custou: ${top[0]} (${money(top[1])})` : ''}</span></p>; })()}
     </section>
     {abertos.length > 0 && <section className="card casa-avisos"><div className="section-title"><div><span className="eyebrow">AVISOS DA CASA</span><h2>{abertos.length} {abertos.length > 1 ? 'coisas para resolver' : 'coisa para resolver'}</h2></div></div>
       <ul>{abertos.map(a => <li key={a.id}><button className="check" aria-label="Marcar como resolvido" disabled={busy} onClick={() => salvarAvisos(avisos.map(x => x.id === a.id ? resolver(x) : x), a.repetirDias ? 'Feito ✓ · próximo lembrete agendado' : 'Resolvido ✓')}><Ok size={15} /></button>

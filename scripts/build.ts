@@ -15,7 +15,9 @@ if (!js || !css) { console.error('saída inesperada', files); process.exit(1); }
 cpSync('public', out, { recursive: true });
 const build = Date.now().toString(36);
 writeFileSync(out + '/index.html', readFileSync('index.html', 'utf8').replace('assets/main.css', 'assets/' + css).replace('assets/main.js', 'assets/' + js));
-writeFileSync(out + '/sw.js', readFileSync('public/sw.js', 'utf8').replace('__BUILD__', build));
+// Pré-carrega todos os arquivos do app para abrir sem sinal (o 3D fica de fora: carrega quando abrir a maquete)
+const precache = readdirSync(out + '/assets').filter(f => !/^chunk-/.test(f) || readFileSync(out + '/assets/' + f).length < 300000).map(f => 'assets/' + f);
+writeFileSync(out + '/sw.js', readFileSync('public/sw.js', 'utf8').replace('__BUILD__', build).replace("'__ASSETS__'", JSON.stringify(precache).slice(1, -1)));
 writeFileSync(out + '/.nojekyll', '');
 writeFileSync(out + '/404.html', readFileSync(out + '/index.html', 'utf8'));
 console.log('ok', js, css, files.length, 'arquivos');
