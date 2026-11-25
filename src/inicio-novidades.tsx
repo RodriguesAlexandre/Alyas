@@ -43,7 +43,7 @@ function quando(ts: number) { const m = Math.round((Date.now() - ts) / 60000); i
 
 /** Últimas novidades: o registro de atividades do app + o que foi criado recentemente (itens da casa, rituais, compras). */
 export function UltimasNovidades({ data, irPara }: { data: any; irPara: (t: number) => void }) {
-  const [todas, setTodas] = useState(false);
+  const [todas, setTodas] = useState(false), [quem, setQuem] = useState<string[]>(['Ale', 'Yas']);
   const lista = useMemo(() => {
     const out: Novidade[] = (data.atividade || []).map((a: any) => ({ ts: Date.parse(a.ts), por: a.por, texto: a.texto, tipo: tipoDe(a.texto, a.aba), aba: ABA[a.aba || ''] }));
     const ja = (t: number, txt: string) => out.some(o => Math.abs(o.ts - t) < 120000 && o.texto.includes(txt));
@@ -53,11 +53,14 @@ export function UltimasNovidades({ data, irPara }: { data: any; irPara: (t: numb
     return out.filter(o => o.ts && o.ts <= Date.now() + 60000).sort((a, b) => b.ts - a.ts);
   }, [data]);
   if (!lista.length) return null;
-  const mostrar = todas ? lista.slice(0, 25) : lista.slice(0, 3);
+  const filtrada = quem.length === 2 ? lista : lista.filter(n => n.por && quem.includes(n.por));
+  const mostrar = todas ? filtrada.slice(0, 25) : filtrada.slice(0, 3);
   return <section className="card novidades">
-    <span className="eyebrow">ÚLTIMAS NOVIDADES</span>
+    <div className="nov-topo"><span className="eyebrow">ÚLTIMAS NOVIDADES</span>
+      <div className="nov-quem" role="group" aria-label="De quem">{['Ale', 'Yas'].map(q => <button key={q} aria-pressed={quem.includes(q)} className={quem.includes(q) ? 'on' : ''} onClick={() => setQuem(l => l.includes(q) ? (l.length > 1 ? l.filter(x => x !== q) : l) : [...l, q])}>{quem.includes(q) ? '✓ ' : ''}{q}</button>)}</div></div>
+    {!filtrada.length && <p className="muted" style={{ fontSize: 13, margin: '6px 0' }}>Nada de {quem[0]} por aqui ainda.</p>}
     <ul>{mostrar.map((n, k) => { const I = ICONE[n.tipo]; return <li key={k}><button onClick={() => n.aba != null && irPara(n.aba)} disabled={n.aba == null}>
       <span className={'nov-ic ' + n.tipo}><I size={13} /></span><b className="nov-txt">{n.texto}</b><small className="nov-quando">{[n.por, quando(n.ts)].filter(Boolean).join(' · ')}</small></button></li>; })}</ul>
-    {lista.length > 3 && <button className="text-btn nov-mais" onClick={() => setTodas(!todas)}>{todas ? 'Mostrar menos' : `Ver mais (${Math.min(25, lista.length) - 3})`} <ChevronDown size={15} style={{ transform: todas ? 'rotate(180deg)' : '' }} /></button>}
+    {filtrada.length > 3 && <button className="text-btn nov-mais" onClick={() => setTodas(!todas)}>{todas ? 'Mostrar menos' : `Ver mais (${Math.min(25, filtrada.length) - 3})`} <ChevronDown size={15} style={{ transform: todas ? 'rotate(180deg)' : '' }} /></button>}
   </section>;
 }

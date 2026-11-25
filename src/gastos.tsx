@@ -3,13 +3,14 @@ import { TrendingUp, TrendingDown, Receipt, ShoppingCart, CalendarRange, Chevron
 import { gastos, type Periodo } from './gastos-logic';
 import { TODOS_LUGARES as LUGARES, FORA } from './lugar';
 import { quem } from './quem';
+import { constancia, iso } from './rituais-logic';
 
 const money = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const money0 = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
 const CORES: Record<string, string> = { Hortifruti: '#7d9c5a', Proteínas: '#d9714a', Laticínios: '#e8b84f', Mercearia: '#1f3d30', Bebidas: '#5b8fa8', Limpeza: '#9b7bb5', Higiene: '#c97a9a', Utilidades: '#8a8f80', 'Casa e bem-estar': '#b0789b', 'Comida pronta': '#e0662e', Farmácia: '#3fa7a0', Outros: '#b9b29f' };
 
 /** Dashboard de gastos da casa, a partir das compras registradas (notas e compras concluídas). */
-export default function Gastos({ data, save, busy, compacto = false }: { data: any; save?: (d: any, m?: string) => Promise<any>; busy?: boolean; compacto?: boolean }) {
+export default function Gastos({ data, save, busy, compacto = false, destaque = false }: { data: any; save?: (d: any, m?: string) => Promise<any>; busy?: boolean; compacto?: boolean; destaque?: boolean }) {
   const [fora, setFora] = useState(false), [editOrc, setEditOrc] = useState(false);
   const [periodo, setPeriodo] = useState<Periodo>('3m');
   const [lugares, setLugares] = useState<string[]>([...LUGARES]);
@@ -32,13 +33,14 @@ export default function Gastos({ data, save, busy, compacto = false }: { data: a
     </div>
     {!todos && <button type="button" className="text-btn gastos-limpar" onClick={() => { setLugares([...LUGARES]); setCats(null); }}>✕ Limpar filtros</button>}
     {!todos && <p className="muted gastos-filtro-nota">Mostrando só: {[lugares.length < LUGARES.length ? lugares.join(' + ') : '', cats ? cats.join(' + ') : ''].filter(Boolean).join(' · ')}. Toque em Tudo e em Todas as categorias para ver o gasto total.</p>}
-    {lugares.length === LUGARES.length && g.lugares.length > 1 && <div className="gastos-lugar-resumo">{g.lugares.map(l => <span key={l.lugar}><b>{money0(l.total)}</b> {l.lugar}</span>)}<small className="muted">{g.rotuloPeriodo}</small></div>}
-    <div className="gastos-kpis">
+    {destaque && <Destaque data={data} g={g} periodo={periodo} filtrado={!todos} />}
+    {!destaque && lugares.length === LUGARES.length && g.lugares.length > 1 && <div className="gastos-lugar-resumo">{g.lugares.map(l => <span key={l.lugar}><b>{money0(l.total)}</b> {l.lugar}</span>)}<small className="muted">{g.rotuloPeriodo}</small></div>}
+    {!destaque && <div className="gastos-kpis">
       <div><small><CalendarRange size={14} /> Este mês</small><strong>{money0(g.mesAtual)}</strong><span className={delta > 0 ? 'up' : 'down'}>{!g.mesAtual ? 'nenhuma compra registrada ainda' : g.mesAnterior > 0 ? <>{delta > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />} {Math.abs(Math.round(delta * 100))}% vs mês passado</> : 'primeiro mês registrado'}</span></div>
       <div><small><Receipt size={14} /> Por compra</small><strong>{money0(g.ticketMedio)}</strong><span>{g.comprasPeriodo} compras no período</span></div>
       <div><small><ShoppingCart size={14} /> Por semana</small><strong>{money0(g.porSemana)}</strong><span>média do período · orçamento {money0(data.budget)}</span></div>
-    </div>
-    {(g.comidaMes.total > 0) && <p className="gastos-comida"><Bike size={15} /> Comida este mês: <b>{money0(g.comidaMes.total)}</b> <small>mercado {money0(g.comidaMes.mercado)} + fora de casa {money0(g.comidaMes.fora)}</small></p>}
+    </div>}
+    {!destaque && (g.comidaMes.total > 0) && <p className="gastos-comida"><Bike size={15} /> Comida este mês: <b>{money0(g.comidaMes.total)}</b> <small>mercado {money0(g.comidaMes.mercado)} + fora de casa {money0(g.comidaMes.fora)}</small></p>}
     {save && !compacto && <div className="gastos-acoes"><button type="button" className="secondary" onClick={() => setFora(!fora)}><Plus size={15} /> Gasto fora do mercado</button><button type="button" className="secondary" onClick={() => setEditOrc(!editOrc)}><Target size={15} /> Limites por categoria</button></div>}
     {fora && save && <FormFora data={data} save={save} busy={busy} onPronto={() => setFora(false)} />}
     {editOrc && save && <FormOrc data={data} save={save} busy={busy} cats={ordemCats} onPronto={() => setEditOrc(false)} />}
@@ -108,4 +110,27 @@ function FormOrc({ data, save, busy, cats, onPronto }: { data: any; save: (d: an
     <div className="gastos-orc-form">{cats.map(c => <label key={c}><span><i style={{ background: CORES[c] || '#999' }} />{c}</span><input name={c} inputMode="decimal" placeholder="—" defaultValue={orc[c] ? String(orc[c]).replace('.', ',') : ''} /></label>)}</div>
     <button className="primary" disabled={busy}>Salvar limites</button>
   </form>;
+}
+
+const MESES_L = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+/** Cartão verde do Início: o resumo do período escolhido (e dos filtros) logo abaixo dos filtros. */
+function Destaque({ data, g, periodo, filtrado }: { data: any; g: ReturnType<typeof gastos>; periodo: Periodo; filtrado: boolean }) {
+  const hoje = new Date(), cats = g.categorias.slice(0, 4), max = cats[0]?.total || 1, cor = (c: string) => c === 'Mercearia' ? '#b9d39a' : CORES[c] || '#b9b29f';
+  const rit = useMemo(() => { let fez = 0, devia = 0; (data.rituais || []).forEach((r: any) => { const c = constancia(r, iso(hoje)); fez += c.fez; devia += c.devia; }); return { fez, devia }; }, [data]);
+  const titulo = periodo === '1m' ? MESES_L[hoje.getMonth()] + ' até agora' : periodo === '3m' ? 'últimos 3 meses' : 'todo o histórico';
+  const meses = periodo === '1m' ? 1 : periodo === '3m' ? 3 : Math.max(1, g.meses.filter(m => m.total > 0).length);
+  const varia = periodo === '1m' && g.mesAnterior > 0 ? g.mesAtual / g.mesAnterior - 1 : null;
+  return <div className="mes-numeros gastos-destaque">
+    <span className="eyebrow">{titulo.toUpperCase()}{filtrado ? ' · COM FILTROS' : ''}</span>
+    <strong className="mes-total">{money(g.totalPeriodo)}</strong>
+    {varia != null ? <span className={'mes-var ' + (varia > 0 ? 'sobe' : 'desce')}>{varia > 0 ? <TrendingUp size={13} /> : <TrendingDown size={13} />} {Math.round(Math.abs(varia) * 100)}% vs {MESES_L[(hoje.getMonth() + 11) % 12]} inteiro ({money0(g.mesAnterior)})</span>
+      : periodo !== '1m' && <span className="mes-var neutro">média de {money0(g.totalPeriodo / meses)} por mês</span>}
+    {cats.length > 0 && <div className="mes-barras">{cats.map(c => <div key={c.cat}><span><i style={{ background: cor(c.cat) }} />{c.cat}</span><b>{money0(c.total)}</b><em><i style={{ width: Math.max(3, c.total / max * 100) + '%', background: cor(c.cat) }} /></em></div>)}</div>}
+    <div className="mes-mini">
+      <span><small>Compras</small><b>{g.comprasPeriodo}</b><em>média {money0(g.ticketMedio)}</em></span>
+      <span><small>Por semana</small><b>{money0(g.porSemana)}</b><em>orçamento {money0(data.budget)}</em></span>
+      {periodo === '1m' && !filtrado && g.comidaMes.total > 0 ? <span><small>Comida</small><b>{money0(g.comidaMes.total)}</b><em>{g.comidaMes.fora ? money0(g.comidaMes.fora) + ' fora' : 'tudo do mercado'}</em></span>
+        : <span><small>Rituais (4 sem.)</small><b>{rit.devia ? Math.round(rit.fez / rit.devia * 100) + '%' : '—'}</b><em>{rit.devia ? `${rit.fez} de ${rit.devia}` : 'sem rituais'}</em></span>}
+    </div>
+  </div>;
 }

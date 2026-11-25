@@ -52,6 +52,7 @@ export function gastos(data: any, periodo: Periodo, hoje = new Date(), lugares: 
     compras: compras.length, comprasPeriodo: noPeriodo.length,
     rotuloPeriodo: periodo === '1m' ? 'este mês' : periodo === '3m' ? 'últimos 3 meses' : 'todo o histórico',
     mesAtual: meses[5].total, mesAnterior: meses[4].total, meses,
+    totalPeriodo: totalNoPeriodo, inicioPeriodo: inicio,
     ticketMedio: noPeriodo.length ? totalNoPeriodo / noPeriodo.length : 0, porSemana: totalNoPeriodo / semanas,
     categorias: [...cats.entries()].map(([cat, total]) => ({ cat, total, pct: total / totalPer })).sort((a, b) => b.total - a.total),
     categoriasExistentes: [...new Set(brutas.flatMap((h: any) => (h.items || []).map((i: any) => i.cat || 'Outros')))] as string[],
