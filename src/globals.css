@@ -556,3 +556,9 @@ html.escuro .nov-ic{background:#262823}
 .gastos-acoes{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}.gastos-acoes .secondary{white-space:normal!important;line-height:1.2;min-width:0;text-align:center}
 .gastos-form .form-grid{align-items:start!important}.gastos-form .form-grid input,.gastos-form>label input{height:48px!important;min-height:48px;padding:0 14px!important;font-size:16px}.gastos-form .form-grid label{justify-content:flex-start}
 .resumo-suspensa#nao-pode-faltar summary>svg:first-child{color:var(--green)}
+/* Cores por categoria (claras, sem atrapalhar a leitura) */
+.cat-chip{background:color-mix(in srgb,var(--c) 13%,#fff)!important;border-color:color-mix(in srgb,var(--c) 35%,#fff)!important;color:color-mix(in srgb,var(--c) 70%,#1f3d30)!important}
+.cat-chip.selected{background:var(--c)!important;border-color:var(--c)!important;color:#fff!important}
+.cat-titulo{display:flex;align-items:center;gap:8px}.cat-titulo>i{width:10px;height:10px;border-radius:3px;background:var(--c);flex-shrink:0}.cat-titulo span{background:color-mix(in srgb,var(--c) 15%,#fff)!important;color:color-mix(in srgb,var(--c) 75%,#1f3d30)!important}
+html.escuro .cat-chip{background:color-mix(in srgb,var(--c) 22%,#1e1f1c)!important;border-color:color-mix(in srgb,var(--c) 40%,#1e1f1c)!important;color:color-mix(in srgb,var(--c) 55%,#fff)!important}html.escuro .cat-titulo span{background:color-mix(in srgb,var(--c) 25%,#1e1f1c)!important;color:color-mix(in srgb,var(--c) 50%,#fff)!important}
+.cat-chip{color:color-mix(in srgb,var(--c) 50%,#1f2a22)!important;font-weight:650}.cat-titulo>i{display:none}
