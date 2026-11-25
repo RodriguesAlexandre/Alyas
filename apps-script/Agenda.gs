@@ -60,3 +60,39 @@ function sincronizarAgenda(p) {
 }
 /** Rode esta função uma vez no editor para autorizar o acesso à Agenda. */
 function autorizarAgenda() { const cal = agendaCal(true); Calendar.CalendarList.list({ maxResults: 1 }); UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true }); Logger.log('Agenda pronta: ' + cal.getName()); }
+
+// ---------- Sincronia automática (gatilho a cada 1 minuto) ----------
+function ocorreRitual(r, dia) {
+  if (r.pausado || dia < r.inicio) return false;
+  const d = new Date(dia + 'T12:00:00'), ini = new Date(r.inicio + 'T12:00:00'), dif = Math.round((d - ini) / 864e5);
+  const dias = r.dias && r.dias.length ? r.dias : [ini.getDay()];
+  switch (r.repete) {
+    case 'unica': return dia === r.inicio;
+    case 'diario': return true;
+    case 'dias': return dif % Math.max(1, r.cada || 1) === 0;
+    case 'semanal': return dias.indexOf(d.getDay()) >= 0;
+    case 'quinzenal': { if (dias.indexOf(d.getDay()) < 0) return false; const dom = new Date(ini.getTime() - ini.getDay() * 864e5); return Math.floor(Math.round((d - dom) / 864e5) / 7) % 2 === 0; }
+    case 'mensal': { const ult = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return d.getDate() === Math.min(ini.getDate(), ult); }
+  }
+  return false;
+}
+function proximaRitual(r, hoje) {
+  const base = new Date((r.inicio > hoje ? r.inicio : hoje) + 'T12:00:00');
+  for (let i = 0; i < 400; i++) { const s = Utilities.formatDate(new Date(base.getTime() + i * 864e5), 'America/Sao_Paulo', 'yyyy-MM-dd'); if (ocorreRitual(r, s)) return s; }
+  return r.inicio;
+}
+/** Roda sozinho a cada minuto: se algo mudou na planilha, leva os rituais para a agenda. A cada 30 min confere tudo (refaz eventos apagados). */
+function sincronizarAgendaAuto() {
+  const pr = PropertiesService.getScriptProperties(); if (!pr.getProperty('AGENDA_ID')) return;
+  const rev = String(revisao()), conferir = new Date().getMinutes() % 30 === 0;
+  if (pr.getProperty('AGENDA_REV') === rev && !conferir) return;
+  const c = lerCasa(); if (!c.ok || !c.data) return;
+  const hoje = Utilities.formatDate(new Date(), 'America/Sao_Paulo', 'yyyy-MM-dd');
+  const rs = (c.data.rituais || []).map(function (r) { const x = JSON.parse(JSON.stringify(r)); delete x.feitos; x.primeira = proximaRitual(r, hoje); return x; });
+  sincronizarAgenda({ rituais: rs }); pr.setProperty('AGENDA_REV', rev);
+}
+/** Rode uma vez no editor: liga o gatilho de 1 em 1 minuto. */
+function ligarSincroniaAgenda() {
+  ScriptApp.getProjectTriggers().filter(function (t) { return t.getHandlerFunction() === 'sincronizarAgendaAuto'; }).forEach(function (t) { ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('sincronizarAgendaAuto').timeBased().everyMinutes(1).create(); sincronizarAgendaAuto(); Logger.log('Sincronia automática ligada');
+}
