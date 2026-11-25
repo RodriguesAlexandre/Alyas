@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { ShoppingBasket, AlertTriangle, RotateCcw, Plus, ArrowUpRight, Radar, ChevronDown } from 'lucide-react';
+import { ShoppingBasket, AlertTriangle, RotateCcw, Plus, ArrowUpRight, Radar, ChevronDown, Check } from 'lucide-react';
 import ProdutoIcone from './produto-icone';
 import { sugerirReposicao, itemDaSugestao } from './reposicao';
 import { melhorCotacao } from './casa-logic';
@@ -23,10 +23,16 @@ export default function Resumo({ data, save, busy, ready, irPara }: { data: any;
     <div className="resumo-topo"><div><span className="eyebrow">{new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase()}</span>
       <h2>{saudacao()}{nome ? ', ' + nome : ''}.</h2></div></div>
     <div className="resumo-tiles">
-      <button onClick={() => irPara(1)}><ShoppingBasket size={18} /><b>{pendentes.length}</b><small>para comprar</small></button>
+      <button onClick={() => pendentes.length ? abrir('nao-pode-faltar') : irPara(1)}><ShoppingBasket size={18} /><b>{pendentes.length}</b><small>para comprar</small></button>
       <button className={acabando.length ? 'alerta' : ''} onClick={() => abrir('acabando')}><AlertTriangle size={18} /><b>{acabando.length}</b><small>acabando</small></button>
       <button className={repor.length ? 'repor' : ''} onClick={() => abrir('hora-de-repor')}><RotateCcw size={18} /><b>{repor.length}</b><small>hora de repor</small></button>
     </div>
+    {pendentes.length > 0 && <details className="resumo-suspensa" id="nao-pode-faltar">
+      <summary><ShoppingBasket size={15} /><span><b>Não pode faltar</b><small>{pendentes.slice(0, 3).map((i: any) => i.name).join(', ')}{pendentes.length > 3 ? ` +${pendentes.length - 3}` : ''}</small></span><ChevronDown size={16} className="seta" /></summary>
+      {pendentes.slice(0, 10).map((i: any) => <div key={i.id} className="mini-row"><ProdutoIcone nome={i.name} cat={i.cat} /><div><b>{i.name}</b><small>{i.qty} {i.unit} · {i.cat}{i.lugar && i.lugar !== 'Supermercado' ? ' · ' + i.lugar : ''}</small></div>
+        <button className="icon-btn" aria-label={'Marcar ' + i.name + ' como comprado'} disabled={!ready || busy} onClick={() => save({ ...data, items: data.items.map((x: any) => x.id === i.id ? { ...x, checked: true, by: quem() || undefined } : x) }, i.name + ' marcado como comprado')}><Check size={18} /></button></div>)}
+      <button className="secondary resumo-todos" onClick={() => irPara(1)}>Ver a lista completa{pendentes.length > 10 ? ` (${pendentes.length})` : ''} <ArrowUpRight size={14} /></button>
+    </details>}
     {acabando.length > 0 && <details className="resumo-suspensa" id="acabando">
       <summary><AlertTriangle size={15} /><span><b>Acabando</b><small>{acabando.slice(0, 3).map((p: any) => p.name).join(', ')}{acabando.length > 3 ? ` +${acabando.length - 3}` : ''}</small></span><ChevronDown size={16} className="seta" /></summary>
       {acabando.slice(0, 12).map((p: any) => <div key={p.id} className="mini-row"><ProdutoIcone nome={p.name} cat={p.cat} /><div><b>{p.name}</b><small>{p.supply === 'out' ? 'acabou' : 'acabando'} · {p.cat}</small></div>

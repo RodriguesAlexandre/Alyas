@@ -555,3 +555,4 @@ html.escuro .nov-ic{background:#262823}
 .gastos-form input[type=date]::-webkit-date-and-time-value{text-align:left}.gastos-form label{font-size:13px}.gastos-form>label{display:flex;flex-direction:column;gap:6px}
 .gastos-acoes{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}.gastos-acoes .secondary{white-space:normal!important;line-height:1.2;min-width:0;text-align:center}
 .gastos-form .form-grid{align-items:start!important}.gastos-form .form-grid input,.gastos-form>label input{height:48px!important;min-height:48px;padding:0 14px!important;font-size:16px}.gastos-form .form-grid label{justify-content:flex-start}
+.resumo-suspensa#nao-pode-faltar summary>svg:first-child{color:var(--green)}
