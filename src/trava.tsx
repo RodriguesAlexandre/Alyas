@@ -1,7 +1,8 @@
 // Bloqueio do app neste aparelho: Face ID / digital (WebAuthn) com PIN de reserva.
 // Protege quem pega o celular desbloqueado; os dados continuam na planilha do Ale, protegidos pela chave da casa.
 import { useEffect, useState } from 'react';
-import { ScanFace, Delete, Lock } from 'lucide-react';
+import { ScanFace, Delete, Lock, Sheet } from 'lucide-react';
+import { api } from './api';
 
 const CHAVE = 'aleyas-trava', ULTIMO = 'aleyas-trava-ultimo', TEMPO = 5 * 60 * 1000;
 type Config = { pin: string; sal: string; cred?: string };
@@ -77,5 +78,14 @@ export function CartaoTrava({ quem }: { quem: string }) {
         : <button className="primary" onClick={() => { setMsg(''); setP1(''); setP2(''); setPasso('pin'); }}><Lock size={16} /> Ligar bloqueio{bio ? ' com Face ID' : ''}</button>}
     {msg && <p className="muted" role="status">{msg}</p>}
     <p className="muted"><small>Vale para este aparelho. A Yas liga no celular dela também.</small></p>
+    <BotaoPlanilha />
   </section>;
+}
+
+/** Link para a planilha do Google onde ficam os dados. */
+function BotaoPlanilha() {
+  const [url, setUrl] = useState(''), [erro, setErro] = useState(false);
+  useEffect(() => { api.planilha().then(r => setUrl(r.url)).catch(() => setErro(true)); }, []);
+  if (erro || !url) return null;
+  return <a className="secondary trava-planilha" href={url} target="_blank" rel="noopener"><Sheet size={16} /> Abrir a planilha no Google Sheets</a>;
 }

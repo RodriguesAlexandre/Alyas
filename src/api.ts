@@ -79,6 +79,7 @@ export const api = {
   lerProduto: (url: string) => chamar('produto', { url }, 90000).then(r => r.produto as { name: string; titulo: string; cat: string; comodo: string; marca: string; modelo: string; preco: number | null; loja: string; link: string; foto: string; mime: string }),
   agenda: (rituais: any[], yas?: string) => chamar('agenda', { rituais, ...(yas ? { yas } : {}) }, 120000) as Promise<{ ok: true; agenda: string; convidada: string; eventos: number }>,
   statusAgenda: () => chamar('agendaStatus', {}, 30000) as Promise<{ ok: true; ligada: boolean; convidada: string; agenda: string }>,
+  planilha: () => chamar('planilha', {}, 30000) as Promise<{ ok: true; url: string; nome: string }>,
   salvarFoto: (id: string, dados: string) => chamar('fotoSalvar', { id, dados }, 60000).then(r => r.id as string),
   foto: (id: string) => chamar('foto', { id }, 45000).then(r => r.dados as string),
   apagarFoto: (id: string) => chamar('fotoApagar', { id }, 30000),

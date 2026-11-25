@@ -168,6 +168,7 @@ function tratar(p) {
     case 'radar': return importarRadar();
     case 'agenda': return sincronizarAgenda(p);
     case 'agendaStatus': return statusAgenda();
+    case 'planilha': return { ok: true, url: SpreadsheetApp.getActive().getUrl(), nome: SpreadsheetApp.getActive().getName() };
     default: return falha('Ação desconhecida.', 400);
   }
 }

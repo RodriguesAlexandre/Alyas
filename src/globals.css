@@ -508,3 +508,4 @@ html.escuro .trava{background:#151613}html.escuro .trava-teclado button{backgrou
 .estragou-aviso.saiu{background:#eceae4;color:#444}
 html.escuro .ocorr.estragou,html.escuro .estragou-form.conserto{background:#22291d}html.escuro .ocorr{background:#1e1f1c}
 .ocorr-botoes{grid-template-columns:repeat(6,1fr)}.ocorr{grid-column:span 2;padding:10px 4px}.ocorr.estragou,.ocorr.conserto{grid-column:span 3}
+.trava-planilha{display:inline-flex;align-items:center;gap:6px;margin-top:6px;text-decoration:none}
