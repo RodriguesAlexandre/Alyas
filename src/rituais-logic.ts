@@ -1,8 +1,8 @@
 // Rituais domésticos: tarefas que se repetem (lavar roupa toda sexta, trocar a roupa de cama a cada 15 dias…)
-export type Repete = 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'dias';
+export type Repete = 'unica' | 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'dias';
 export type Ritual = {
   id: string; nome: string; cat: string; resp: 'Ale' | 'Yas' | 'Ambos'; repete: Repete; cada?: number; dias?: number[];
-  hora?: string; dur?: number; inicio: string; feitos: { d: string; em: string; por?: string }[]; pausado?: boolean; nota?: string; criado?: string;
+  hora?: string; dur?: number; lembretes?: number[]; inicio: string; feitos: { d: string; em: string; por?: string }[]; pausado?: boolean; nota?: string; criado?: string;
 };
 export const CATS_RITUAL = ['Casa', 'Limpeza', 'Roupas', 'Cozinha', 'Plantas', 'Compras', 'Contas', 'Cuidado pessoal', 'Outros'] as const;
 export const EMOJI_CAT: Record<string, string> = { Casa: '🏠', Limpeza: '🧽', Roupas: '🧺', Cozinha: '🍳', Plantas: '🪴', Compras: '🛒', Contas: '🧾', 'Cuidado pessoal': '🫧', Outros: '✨' };
@@ -21,6 +21,7 @@ export function ocorre(r: Ritual, dia: string): boolean {
   if (r.pausado || dia < r.inicio) return false;
   const d = deIso(dia), dif = difDias(r.inicio, dia), dias = r.dias?.length ? r.dias : [deIso(r.inicio).getDay()];
   switch (r.repete) {
+    case 'unica': return dia === r.inicio;
     case 'diario': return true;
     case 'dias': return dif % Math.max(1, r.cada || 1) === 0;
     case 'semanal': return dias.includes(d.getDay());
@@ -53,7 +54,7 @@ export function marcar(r: Ritual, dia: string, por?: string): Ritual {
 export function descreverRepeticao(r: Pick<Ritual, 'repete' | 'cada' | 'dias' | 'inicio' | 'hora' | 'dur'>) {
   const dias = (r.dias?.length ? r.dias : [deIso(r.inicio).getDay()]).slice().sort();
   const lista = (ds: number[]) => ds.length === 7 ? 'todo dia' : ds.map(d => DIAS_LONGOS[d]).join(', ').replace(/, ([^,]*)$/, ' e $1');
-  const base = r.repete === 'diario' ? 'Todo dia' : r.repete === 'dias' ? `A cada ${r.cada || 1} dias` : r.repete === 'semanal' ? (dias.length === 1 ? `Toda ${DIAS_LONGOS[dias[0]]}` : `Toda semana: ${lista(dias)}`) : r.repete === 'quinzenal' ? `A cada 15 dias (${lista(dias)})` : `Todo dia ${deIso(r.inicio).getDate()} do mês`;
+  const base = r.repete === 'unica' ? 'Só em ' + deIso(r.inicio).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : r.repete === 'diario' ? 'Todo dia' : r.repete === 'dias' ? `A cada ${r.cada || 1} dias` : r.repete === 'semanal' ? (dias.length === 1 ? `Toda ${DIAS_LONGOS[dias[0]]}` : `Toda semana: ${lista(dias)}`) : r.repete === 'quinzenal' ? `A cada 15 dias (${lista(dias)})` : `Todo dia ${deIso(r.inicio).getDate()} do mês`;
   const fim = r.hora ? fimHora(r.hora, r.dur || 60) : '';
   return base + (r.hora ? ` · ${r.hora}–${fim}` : '');
 }
@@ -67,11 +68,18 @@ export function rrule(r: Ritual) {
 export function linkGoogleAgenda(r: Ritual) {
   const primeiro = proxima(r, r.inicio) || r.inicio, d = primeiro.replace(/-/g, '');
   const datas = r.hora ? `${d}T${r.hora.replace(':', '')}00/${d}T${fimHora(r.hora, r.dur || 60).replace(':', '')}00` : `${d}/${somaDias(primeiro, 1).replace(/-/g, '')}`;
-  const q = new URLSearchParams({ action: 'TEMPLATE', text: (EMOJI_CAT[r.cat] || '') + ' ' + r.nome, dates: datas, ctz: 'America/Sao_Paulo', recur: rrule(r), details: 'Ritual do AleYas' + (r.resp !== 'Ambos' ? ' · ' + r.resp : '') + (r.nota ? '\n' + r.nota : '') });
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: (EMOJI_CAT[r.cat] || '') + ' ' + r.nome, dates: datas, ctz: 'America/Sao_Paulo', ...(r.repete !== 'unica' ? { recur: rrule(r) } : {}), details: 'Ritual do AleYas' + (r.resp !== 'Ambos' ? ' · ' + r.resp : '') + (r.nota ? '\n' + r.nota : '') });
   return 'https://calendar.google.com/calendar/render?' + q.toString();
 }
 /** Quantas vezes foi feito nas últimas 4 semanas, contra quantas deveria. */
 export function constancia(r: Ritual, hoje: string) {
   let devia = 0, fez = 0; for (let i = 0; i < 28; i++) { const d = somaDias(hoje, -i); if (d < r.inicio) break; if (ocorre(r, d)) { devia++; if (feitoEm(r, d)) fez++; } }
   return { devia, fez };
+}
+
+/** Opções de lembrete (minutos antes do início). Em evento de dia inteiro, o início é 0h do dia. */
+export const LEMBRETES_HORA: [number, string][] = [[0, 'Na hora'], [15, '15 min antes'], [30, '30 min antes'], [60, '1 h antes'], [1440, '1 dia antes']];
+export const LEMBRETES_DIA: [number, string][] = [[900, 'Véspera às 9h'], [240, 'Véspera às 20h'], [2340, '2 dias antes, 9h']];
+export function descreverLembretes(r: Pick<Ritual, 'lembretes' | 'hora'>) {
+  const ops = r.hora ? LEMBRETES_HORA : LEMBRETES_DIA; return (r.lembretes || []).map(m => ops.find(o => o[0] === m)?.[1] || m + ' min antes').join(', ');
 }
