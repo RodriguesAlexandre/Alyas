@@ -23,16 +23,11 @@ export default function Resumo({ data, save, busy, ready, irPara }: { data: any;
     <div className="resumo-tiles">
       <button onClick={() => irPara(1)}><ShoppingBasket size={18} /><b>{pendentes.length}</b><small>para comprar</small></button>
       <button className={acabando.length ? 'alerta' : ''} onClick={() => irPara(1)}><AlertTriangle size={18} /><b>{acabando.length}</b><small>acabando</small></button>
-      <button className={repor.length ? 'repor' : ''} onClick={() => document.getElementById('hora-de-repor')?.scrollIntoView({ behavior: 'smooth', block: 'center' })}><RotateCcw size={18} /><b>{repor.length}</b><small>hora de repor</small></button>
     </div>
     {acabando.length > 0 && <div className="resumo-linha"><span><b>Acabando:</b> {acabando.slice(0, 5).map((p: any) => p.name).join(', ')}{acabando.length > 5 ? '…' : ''}</span>
       <button className="secondary" disabled={!ready || busy} onClick={() => add(acabando.map((p: any) => ({ id: crypto.randomUUID(), name: p.name, qty: 1, unit: p.unit, cat: p.cat, checked: false, price: null, date: null, catalogId: p.id })), acabando.length + ' itens foram para a lista')}><Plus size={14} /> Pôr na lista</button></div>}
-    {repor.length > 0 && <div className="resumo-repor" id="hora-de-repor">
-      <h3><RotateCcw size={16} /> Hora de repor <small>pelo ritmo das compras de vocês</small></h3>
-      {repor.slice(0, 5).map(s => <div key={s.chave} className="mini-row"><ProdutoIcone nome={s.nome} cat={s.cat} /><div><b>{s.nome}</b><small>costumam comprar a cada {s.mediaDias} dias · última há {s.diasDesde}</small></div>
-        <button className="icon-btn add" aria-label={'Pôr ' + s.nome + ' na lista'} disabled={!ready || busy} onClick={() => add([itemDaSugestao(s)], s.nome + ' foi para a lista')}><Plus size={18} /></button></div>)}
-      {repor.length > 1 && <button className="secondary resumo-todos" disabled={!ready || busy} onClick={() => add(repor.slice(0, 5).map(itemDaSugestao), Math.min(5, repor.length) + ' itens foram para a lista')}>Pôr {Math.min(5, repor.length) === repor.length ? 'todos' : 'esses ' + Math.min(5, repor.length)} na lista</button>}
-    </div>}
+    {repor.length > 0 && <div className="resumo-linha repor-curto" id="hora-de-repor"><span><RotateCcw size={13} /> <b>Hora de repor:</b> {repor.slice(0, 4).map(r => r.nome).join(', ')}{repor.length > 4 ? ` +${repor.length - 4}` : ''}</span>
+      <button className="secondary" disabled={!ready || busy} onClick={() => add(repor.slice(0, 5).map(itemDaSugestao), Math.min(5, repor.length) + (repor.length === 1 ? ' item foi' : ' itens foram') + ' para a lista')}><Plus size={14} /> Pôr na lista</button></div>}
     {radar && <button className="resumo-radar" onClick={() => irPara(4)}><Radar size={16} /><span><b>{radar.name.replace(/^Robô aspirador /, 'Robô ')}: {radar.radar.decisao}</b><small>{(() => { const m = melhorCotacao(radar); return m ? 'melhor ' + money(m.preco) + (radar.meta ? ' · meta ' + money(radar.meta) : '') : 'sem cotação hoje'; })()}</small></span><ArrowUpRight size={16} /></button>}
   </section>;
 }
