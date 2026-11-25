@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, X, CalendarPlus, Pause, Play, Pencil, Trash2, Loader2, CalendarCheck, RefreshCw, Clock } from 'lucide-react';
 import { LEMBRETES_HORA, LEMBRETES_DIA, descreverLembretes, CATS_RITUAL, EMOJI_CAT, DIAS_SEMANA, agenda, marcar, descreverRepeticao, linkGoogleAgenda, constancia, iso, deIso, proxima, type Ritual, type Repete } from './rituais-logic';
 import { quem } from './quem';
+import RituaisCalendario, { useVistaRituais } from './rituais-cal';
 import { api } from './api';
 
 const MODELOS: Partial<Ritual>[] = [
@@ -20,6 +21,7 @@ const nomeDia = (d: string, hoje: string) => { const dif = Math.round((deIso(d).
 
 export default function Rituais({ data, save, busy, ready }: { data: any; save: (d: any, m?: string) => Promise<any>; busy: boolean; ready: boolean }) {
   const rituais: Ritual[] = data.rituais || [];
+  const [vista, setVista] = useVistaRituais();
   const [hoje, setHoje] = useState(iso(new Date())), [editando, setEditando] = useState<Partial<Ritual> | null>(null), [deQuem, setDeQuem] = useState<'todos' | 'Ale' | 'Yas'>('todos');
   useEffect(() => { const t = setInterval(() => setHoje(iso(new Date())), 60000); return () => clearInterval(t); }, []);
   const filtrados = rituais.filter(r => deQuem === 'todos' || r.resp === deQuem || r.resp === 'Ambos');
@@ -40,13 +42,16 @@ export default function Rituais({ data, save, busy, ready }: { data: any; save: 
         <h2>{!ag.hoje.length && !ag.atrasados.length ? (rituais.length ? 'Nada para hoje. Aproveitem!' : 'Comecem pelos rituais da casa') : ag.hoje.length && feitosHoje === ag.hoje.length && !ag.atrasados.length ? 'Tudo feito hoje ✨' : `${ag.hoje.length - feitosHoje + ag.atrasados.length} para fazer`}</h2></div>
         <button className="primary" disabled={!ready || busy} onClick={() => setEditando({})}><Plus size={18} /> Novo ritual</button></div>
       {rituais.length > 0 && <div className="chips rit-quem" role="group" aria-label="De quem">{(['todos', 'Ale', 'Yas'] as const).map(q => <button key={q} className={deQuem === q ? 'selected' : ''} aria-pressed={deQuem === q} onClick={() => setDeQuem(q)}>{q === 'todos' ? 'De todos' : q === 'Yas' ? 'Da Yas' : 'Do Ale'}</button>)}</div>}
+      {rituais.length > 0 && <div className="rit-vistas" role="tablist" aria-label="Visualização">{([['lista', 'Lista'], ['semana', 'Semana'], ['mes', 'Mês']] as const).map(([k, t]) => <button key={k} role="tab" aria-selected={vista === k} className={vista === k ? 'on' : ''} onClick={() => setVista(k)}>{t}</button>)}</div>}
+      {vista !== 'lista' && rituais.length > 0 ? <RituaisCalendario rituais={filtrados} modo={vista} busy={busy || !ready} onCheck={check} onEditar={r => setEditando(r)} onNovo={(dia, hora) => setEditando({ inicio: dia, repete: 'unica', ...(hora ? { hora, dur: 60, lembretes: [30] } : { lembretes: [900] }) })} /> : <>
       {ag.hoje.length > 0 && <div className="rit-barra" aria-label={`${feitosHoje} de ${ag.hoje.length} feitos hoje`}><i style={{ width: (feitosHoje / ag.hoje.length) * 100 + '%' }} /></div>}
       {ag.atrasados.length > 0 && <><h3 className="rit-h3 atraso">Ficou para trás</h3><ul className="rit-lista">{ag.atrasados.map(o => <Linha key={o.r.id + o.dia} o={o} />)}</ul></>}
       {ag.hoje.length > 0 && <ul className="rit-lista">{ag.hoje.map(o => <Linha key={o.r.id + o.dia} o={o} />)}</ul>}
+      </>}
       {!rituais.length && <><p className="muted">Tarefas que se repetem, com check e lembrete na agenda de vocês dois. Toque num modelo para começar:</p>
         <div className="chips rit-modelos">{MODELOS.map(m => <button key={m.nome} onClick={() => setEditando(m)}>{EMOJI_CAT[m.cat!]} {m.nome}</button>)}</div></>}
     </section>
-    {ag.proximos.length > 0 && <section className="card"><span className="eyebrow">PRÓXIMOS 7 DIAS</span>
+    {vista === 'lista' && ag.proximos.length > 0 && <section className="card"><span className="eyebrow">PRÓXIMOS 7 DIAS</span>
       {[...new Set(ag.proximos.map(o => o.dia))].map(d => <div key={d} className="rit-dia"><h3 className="rit-h3">{nomeDia(d, hoje)}</h3><ul className="rit-lista">{ag.proximos.filter(o => o.dia === d).map(o => <Linha key={o.r.id + o.dia} o={o} />)}</ul></div>)}
     </section>}
     {rituais.length > 0 && <AgendaCard data={data} rituais={rituais} />}
