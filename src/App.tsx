@@ -15,7 +15,7 @@ import { CartaoTrava } from './trava';
 import { avisarOutros, pushLigado } from './notificacoes';
 import { CartaoNotificacoes } from './notificacoes-ui';
 import Resumo from './resumo';
-import { UltimasNovidades } from './inicio-novidades';
+import { UltimasNovidades, ACAO_IRRELEVANTE } from './inicio-novidades';
 import Tour,{tourVisto} from './tour';
 import {definirFotosProdutos} from './fotos-produtos';
 import './fotos';
@@ -75,7 +75,7 @@ const limparPlano=(d:any)=>({...d,plan:Object.fromEntries(Object.entries(d.plan|
  useEffect(()=>{if(toast){const t=setTimeout(()=>setToast(''),desfazer.current?6500:3500);return()=>clearTimeout(t)}},[toast]);
  // Salva na hora neste aparelho e envia para a planilha em segundo plano.
  async function save(next:any,msg='Salvo'){
-  if(!ready)return false;if(msg&&!/^(Salvo|Desfeito|Tema|Desmarcado)/i.test(msg)&&msg.length<200){const q=quem();next={...next,atividade:[...(next.atividade||[]),{ts:new Date().toISOString(),...(q?{por:q}:{}),texto:msg.replace(/\s*[✓✔]+\s*$/,''),aba:['Início','Lista','Despensa','Cardápio','Casa','Ajustes','Rituais'][tab]}].slice(-60)}}const parsed=stateSchema.safeParse(next);if(!parsed.success){setError('Confira os nomes, quantidades e valores informados.');return false}
+  if(!ready)return false;if(msg&&!ACAO_IRRELEVANTE.test(msg)&&msg.length<200){const q=quem();next={...next,atividade:[...(next.atividade||[]),{ts:new Date().toISOString(),...(q?{por:q}:{}),texto:msg.replace(/\s*[✓✔]+\s*$/,''),aba:['Início','Lista','Despensa','Cardápio','Casa','Ajustes','Rituais'][tab]}].slice(-60)}}const parsed=stateSchema.safeParse(next);if(!parsed.success){setError('Confira os nomes, quantidades e valores informados.');return false}
   if(msg!=='Desfeito'){desfazer.current={dados:live.current.data,ate:Date.now()+6500}}else desfazer.current=null;try{navigator.vibrate?.(10)}catch{}
   live.current.data=next;setData(next);setModal(null);setToast(msg);if(pushLigado()&&msg!=='Desfeito')avisarOutros(msg,['Início','Lista','Despensa','Cardápio','Casa','Ajustes','Rituais'][tab]);setError('');dirty.current=true;gravarCache({data:next,revision:live.current.revision,dirty:true});flush();return true}
  const recipes=allRecipes(data);

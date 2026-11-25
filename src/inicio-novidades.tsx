@@ -35,6 +35,8 @@ export function MesEmNumeros({ data, irPara }: { data: any; irPara: (t: number) 
   </section>;
 }
 
+/** Só ações concretas: o que foi adicionado, comprado, lançado ou registrado (não ajustes de tela). */
+export const ACAO_IRRELEVANTE = /modo (claro|escuro)|\btema\b|perfil|prefer[eê]ncias|desfeito|desmarcad|reaberto|filtro|bloqueio|notifica|layout|vers[aã]o|aparelho|renomead|limites por categoria|or[cç]amento (de|salvo)|^salvo|^sincroniz|resolvido|aviso apagado|ritual (pausado|retomado|atualizado)|^feito/i;
 type Novidade = { ts: number; por?: string; texto: string; tipo: 'lista' | 'casa' | 'ritual' | 'compra' | 'conserto' | 'outro'; aba?: number };
 const ICONE = { lista: ShoppingBasket, casa: Sofa, ritual: CalendarCheck, compra: Receipt, conserto: Wrench, outro: Sparkles };
 const ABA: Record<string, number> = { 'Início': 0, Lista: 1, Despensa: 2, 'Cardápio': 3, Casa: 4, Ajustes: 5, Rituais: 6 };
@@ -45,7 +47,7 @@ function quando(ts: number) { const m = Math.round((Date.now() - ts) / 60000); i
 export function UltimasNovidades({ data, irPara }: { data: any; irPara: (t: number) => void }) {
   const [todas, setTodas] = useState(false), [quem, setQuem] = useState<string[]>(['Ale', 'Yas']);
   const lista = useMemo(() => {
-    const out: Novidade[] = (data.atividade || []).map((a: any) => ({ ts: Date.parse(a.ts), por: a.por, texto: a.texto, tipo: tipoDe(a.texto, a.aba), aba: ABA[a.aba || ''] }));
+    const out: Novidade[] = (data.atividade || []).filter((a: any) => !ACAO_IRRELEVANTE.test(a.texto)).map((a: any) => ({ ts: Date.parse(a.ts), por: a.por, texto: a.texto, tipo: tipoDe(a.texto, a.aba), aba: ABA[a.aba || ''] }));
     const ja = (t: number, txt: string) => out.some(o => Math.abs(o.ts - t) < 120000 && o.texto.includes(txt));
     (data.casa || []).forEach((i: any) => { const t = Date.parse(i.criado); if (t && !ja(t, i.name)) out.push({ ts: t, por: i.por, texto: `${i.name} em ${i.status === 'temos' ? 'Já temos' : 'Queremos comprar'}`, tipo: 'casa', aba: 4 }); });
     (data.rituais || []).forEach((r: any) => { const t = Date.parse(r.criado || ''); if (t && !ja(t, r.nome)) out.push({ ts: t, texto: `Novo ritual: ${r.nome}`, tipo: 'ritual', aba: 6 }); });
