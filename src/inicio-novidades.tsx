@@ -17,7 +17,7 @@ export function MesEmNumeros({ data, irPara }: { data: any; irPara: (t: number) 
   if (!g.compras) return null;
   // compara com o mesmo pedaço do mês passado (até o mesmo dia), para não parecer que sempre gastou menos
   const ant = g.mesAnterior, varia = ant > 0 ? g.mesAtual / ant - 1 : null;
-  const cats = g.categorias.slice(0, 4), max = cats[0]?.total || 1;
+  const cats = g.categorias.slice(0, 4), max = cats[0]?.total || 1, cor = (c: string) => c === 'Mercearia' ? '#b9d39a' : CORES[c] || '#b9b29f';
   const sub = varia == null ? null : varia > 0;
   return <section className="card mes-numeros">
     <div className="mes-topo">
@@ -25,7 +25,7 @@ export function MesEmNumeros({ data, irPara }: { data: any; irPara: (t: number) 
         {varia != null && <span className={'mes-var ' + (sub ? 'sobe' : 'desce')}>{sub ? <TrendingUp size={13} /> : <TrendingDown size={13} />} {Math.round(Math.abs(varia) * 100)}% vs {MESES[(hoje.getMonth() + 11) % 12]} inteiro ({money(ant, false)})</span>}</div>
       <button className="text-btn" onClick={() => irPara(1)}>Detalhes</button>
     </div>
-    <div className="mes-barras">{cats.map(c => <div key={c.cat}><span><i style={{ background: CORES[c.cat] || '#b9b29f' }} />{c.cat}</span><b>{money(c.total, false)}</b><em><i style={{ width: Math.max(3, c.total / max * 100) + '%', background: CORES[c.cat] || '#b9b29f' }} /></em></div>)}</div>
+    <div className="mes-barras">{cats.map(c => <div key={c.cat}><span><i style={{ background: cor(c.cat) }} />{c.cat}</span><b>{money(c.total, false)}</b><em><i style={{ width: Math.max(3, c.total / max * 100) + '%', background: cor(c.cat) }} /></em></div>)}</div>
     <div className="mes-mini">
       <span><small>Comida</small><b>{money(g.comidaMes.total, false)}</b>{g.comidaMes.fora > 0 && <em>{money(g.comidaMes.fora, false)} fora</em>}</span>
       <span><small>Idas ao mercado</small><b>{g.comprasPeriodo}</b><em>média {money(g.ticketMedio, false)}</em></span>
@@ -53,11 +53,11 @@ export function UltimasNovidades({ data, irPara }: { data: any; irPara: (t: numb
     return out.filter(o => o.ts && o.ts <= Date.now() + 60000).sort((a, b) => b.ts - a.ts);
   }, [data]);
   if (!lista.length) return null;
-  const mostrar = todas ? lista.slice(0, 25) : lista.slice(0, 6);
+  const mostrar = todas ? lista.slice(0, 25) : lista.slice(0, 3);
   return <section className="card novidades">
-    <div className="section-title"><div><span className="eyebrow">ÚLTIMAS NOVIDADES</span><h2>O que mudou na casa</h2></div></div>
+    <span className="eyebrow">ÚLTIMAS NOVIDADES</span>
     <ul>{mostrar.map((n, k) => { const I = ICONE[n.tipo]; return <li key={k}><button onClick={() => n.aba != null && irPara(n.aba)} disabled={n.aba == null}>
-      <span className={'nov-ic ' + n.tipo}><I size={15} /></span><span className="nov-txt"><b>{n.texto}</b><small>{[n.por, quando(n.ts)].filter(Boolean).join(' · ')}</small></span></button></li>; })}</ul>
-    {lista.length > 6 && <button className="text-btn nov-mais" onClick={() => setTodas(!todas)}>{todas ? 'Mostrar menos' : `Ver mais (${Math.min(25, lista.length) - 6})`} <ChevronDown size={15} style={{ transform: todas ? 'rotate(180deg)' : '' }} /></button>}
+      <span className={'nov-ic ' + n.tipo}><I size={13} /></span><b className="nov-txt">{n.texto}</b><small className="nov-quando">{[n.por, quando(n.ts)].filter(Boolean).join(' · ')}</small></button></li>; })}</ul>
+    {lista.length > 3 && <button className="text-btn nov-mais" onClick={() => setTodas(!todas)}>{todas ? 'Mostrar menos' : `Ver mais (${Math.min(25, lista.length) - 3})`} <ChevronDown size={15} style={{ transform: todas ? 'rotate(180deg)' : '' }} /></button>}
   </section>;
 }
