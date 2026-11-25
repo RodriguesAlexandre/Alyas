@@ -33,10 +33,10 @@ async function biometria(cfg: Config) {
 /** Tela de bloqueio: aparece ao abrir o app e depois de 5 minutos fora dele. */
 export function Trava({ children }: { children: React.ReactNode }) {
   const [travado, setTravado] = useState(() => { const c = ler(); if (!c) return false; const u = Number(localStorage.getItem(ULTIMO) || 0); return !u || Date.now() - u > TEMPO || !sessionStorage.getItem('aleyas-aberto'); });
-  const [pin, setPin] = useState(''), [erro, setErro] = useState(''), [tentando, setTentando] = useState(false);
+  const [pin, setPin] = useState(''), [erro, setErro] = useState(''), [tentando, setTentando] = useState(false), [falhas, setFalhas] = useState(0), [usarPin, setUsarPin] = useState(false);
   const cfg = ler();
-  const liberar = () => { localStorage.setItem(ULTIMO, String(Date.now())); sessionStorage.setItem('aleyas-aberto', '1'); setTravado(false); setPin(''); setErro(''); };
-  async function rosto() { if (!cfg || tentando) return; setTentando(true); try { if (await biometria(cfg)) liberar(); } finally { setTentando(false); } }
+  const liberar = () => { localStorage.setItem(ULTIMO, String(Date.now())); sessionStorage.setItem('aleyas-aberto', '1'); setTravado(false); setPin(''); setErro(''); setFalhas(0); setUsarPin(false); };
+  async function rosto() { if (!cfg || tentando) return; setTentando(true); try { if (await biometria(cfg)) liberar(); else setFalhas(f => f + 1); } finally { setTentando(false); } }
   useEffect(() => { if (travado && cfg?.cred) rosto(); }, [travado]);
   useEffect(() => {
     const vis = () => { if (!ler()) return; if (document.visibilityState === 'hidden') localStorage.setItem(ULTIMO, String(Date.now())); else if (Date.now() - Number(localStorage.getItem(ULTIMO) || 0) > TEMPO) setTravado(true); };
@@ -50,6 +50,13 @@ export function Trava({ children }: { children: React.ReactNode }) {
     else if (n.length === 6) { setErro('PIN errado'); setPin(''); try { navigator.vibrate?.([30, 40, 30]); } catch {} }
   }
   if (!travado || !cfg) return <>{children}</>;
+  // Com Face ID: o teclado do PIN só aparece depois de 3 tentativas sem sucesso (ou se pedir)
+  if (cfg.cred && !usarPin && falhas < 3) return <div className="trava" role="dialog" aria-modal="true" aria-label="App bloqueado">
+    <Lock size={30} /><h2>AleYas bloqueado</h2>
+    <button className="trava-face" onClick={rosto} disabled={tentando} aria-label="Desbloquear com Face ID"><ScanFace size={54} /><span>{tentando ? 'Olhe para o celular…' : falhas ? 'Tentar de novo' : 'Desbloquear com Face ID'}</span></button>
+    {falhas > 0 && <p className="trava-erro" role="alert">Não reconheceu ({falhas} de 3)</p>}
+    <button className="text-btn trava-usar-pin" onClick={() => setUsarPin(true)}>Usar PIN</button>
+  </div>;
   return <div className="trava" role="dialog" aria-modal="true" aria-label="App bloqueado">
     <Lock size={30} /><h2>AleYas bloqueado</h2><p className="muted">{cfg.cred ? 'Use o Face ID ou o PIN.' : 'Digite o PIN.'}</p>
     <div className="trava-pontos" aria-live="polite">{[0, 1, 2, 3, 4, 5].map(i => <i key={i} className={i < pin.length ? 'on' : ''} />)}</div>
