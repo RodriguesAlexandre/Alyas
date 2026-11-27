@@ -2,7 +2,7 @@
 export type Repete = 'unica' | 'diario' | 'semanal' | 'quinzenal' | 'mensal' | 'dias';
 export type Ritual = {
   id: string; nome: string; cat: string; resp: 'Ale' | 'Yas' | 'Ambos'; repete: Repete; cada?: number; dias?: number[];
-  hora?: string; dur?: number; lembretes?: number[]; inicio: string; feitos: { d: string; em: string; por?: string }[]; pausado?: boolean; nota?: string; criado?: string;
+  hora?: string; dur?: number; lembretes?: number[]; ordinal?: number; inicio: string; feitos: { d: string; em: string; por?: string }[]; pausado?: boolean; nota?: string; criado?: string;
 };
 export const CATS_RITUAL = ['Casa', 'Limpeza', 'Roupas', 'Cozinha', 'Plantas', 'Compras', 'Contas', 'Cuidado pessoal', 'Outros'] as const;
 export const EMOJI_CAT: Record<string, string> = { Casa: '🏠', Limpeza: '🧽', Roupas: '🧺', Cozinha: '🍳', Plantas: '🪴', Compras: '🛒', Contas: '🧾', 'Cuidado pessoal': '🫧', Outros: '✨' };
@@ -26,7 +26,12 @@ export function ocorre(r: Ritual, dia: string): boolean {
     case 'dias': return dif % Math.max(1, r.cada || 1) === 0;
     case 'semanal': return dias.includes(d.getDay());
     case 'quinzenal': { if (!dias.includes(d.getDay())) return false; const ini = deIso(r.inicio); ini.setDate(ini.getDate() - ini.getDay()); return Math.floor(Math.round((d.getTime() - ini.getTime()) / 864e5) / 7) % 2 === 0; }
-    case 'mensal': { const alvo = deIso(r.inicio).getDate(), ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return d.getDate() === Math.min(alvo, ultimo); }
+    case 'mensal': {
+      const ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      // "1ª sexta do mês", "última sábado do mês"…
+      if (r.ordinal) return d.getDay() === dias[0] && (r.ordinal > 0 ? Math.ceil(d.getDate() / 7) === r.ordinal : d.getDate() + 7 > ultimo);
+      const alvo = deIso(r.inicio).getDate(); return d.getDate() === Math.min(alvo, ultimo);
+    }
   }
 }
 export const feitoEm = (r: Ritual, dia: string) => r.feitos.some(f => f.d === dia);
@@ -51,10 +56,13 @@ export function agenda(rs: Ritual[], hoje: string, diasFrente = 7) {
 export function marcar(r: Ritual, dia: string, por?: string): Ritual {
   return feitoEm(r, dia) ? { ...r, feitos: r.feitos.filter(f => f.d !== dia) } : { ...r, feitos: [...r.feitos, { d: dia, em: new Date().toISOString(), ...(por ? { por } : {}) }].slice(-200) };
 }
-export function descreverRepeticao(r: Pick<Ritual, 'repete' | 'cada' | 'dias' | 'inicio' | 'hora' | 'dur'>) {
+export const ORDINAIS: [number, string][] = [[1, '1ª'], [2, '2ª'], [3, '3ª'], [4, '4ª'], [-1, 'Última']];
+const ORD_M: Record<number, string> = { 1: '1º', 2: '2º', 3: '3º', 4: '4º', [-1]: 'último' }, ORD_F: Record<number, string> = { 1: '1ª', 2: '2ª', 3: '3ª', 4: '4ª', [-1]: 'última' };
+export const nomeOrdinal = (o: number, dia: number) => (dia === 0 || dia === 6 ? ORD_M[o] : ORD_F[o]) + ' ' + DIAS_LONGOS[dia] + (dia > 0 && dia < 6 ? '-feira' : '');
+export function descreverRepeticao(r: Pick<Ritual, 'repete' | 'cada' | 'dias' | 'inicio' | 'hora' | 'dur' | 'ordinal'>) {
   const dias = (r.dias?.length ? r.dias : [deIso(r.inicio).getDay()]).slice().sort();
   const lista = (ds: number[]) => ds.length === 7 ? 'todo dia' : ds.map(d => DIAS_LONGOS[d]).join(', ').replace(/, ([^,]*)$/, ' e $1');
-  const base = r.repete === 'unica' ? 'Só em ' + deIso(r.inicio).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : r.repete === 'diario' ? 'Todo dia' : r.repete === 'dias' ? `A cada ${r.cada || 1} dias` : r.repete === 'semanal' ? (dias.length === 1 ? `Toda ${DIAS_LONGOS[dias[0]]}` : `Toda semana: ${lista(dias)}`) : r.repete === 'quinzenal' ? `A cada 15 dias (${lista(dias)})` : `Todo dia ${deIso(r.inicio).getDate()} do mês`;
+  const base = r.repete === 'unica' ? 'Só em ' + deIso(r.inicio).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' }) : r.repete === 'diario' ? 'Todo dia' : r.repete === 'dias' ? `A cada ${r.cada || 1} dias` : r.repete === 'semanal' ? (dias.length === 1 ? `Toda ${DIAS_LONGOS[dias[0]]}` : `Toda semana: ${lista(dias)}`) : r.repete === 'quinzenal' ? `A cada 15 dias (${lista(dias)})` : r.ordinal ? `Todo mês, ${nomeOrdinal(r.ordinal, dias[0])}` : `Todo dia ${deIso(r.inicio).getDate()} do mês`;
   const fim = r.hora ? fimHora(r.hora, r.dur || 60) : '';
   return base + (r.hora ? ` · ${r.hora}–${fim}` : '');
 }
@@ -62,7 +70,7 @@ export function fimHora(h: string, dur: number) { const [a, b] = h.split(':').ma
 /** Regra de repetição no padrão das agendas (RFC 5545), usada no link do Google Agenda. */
 export function rrule(r: Ritual) {
   const dias = (r.dias?.length ? r.dias : [deIso(r.inicio).getDay()]).map(d => RRULE_DIA[d]).join(',');
-  return r.repete === 'diario' ? 'RRULE:FREQ=DAILY' : r.repete === 'dias' ? `RRULE:FREQ=DAILY;INTERVAL=${Math.max(1, r.cada || 1)}` : r.repete === 'semanal' ? `RRULE:FREQ=WEEKLY;BYDAY=${dias}` : r.repete === 'quinzenal' ? `RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=${dias}` : `RRULE:FREQ=MONTHLY;BYMONTHDAY=${deIso(r.inicio).getDate()}`;
+  return r.repete === 'diario' ? 'RRULE:FREQ=DAILY' : r.repete === 'dias' ? `RRULE:FREQ=DAILY;INTERVAL=${Math.max(1, r.cada || 1)}` : r.repete === 'semanal' ? `RRULE:FREQ=WEEKLY;BYDAY=${dias}` : r.repete === 'quinzenal' ? `RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=${dias}` : r.ordinal ? `RRULE:FREQ=MONTHLY;BYDAY=${r.ordinal}${RRULE_DIA[(r.dias?.length ? r.dias : [deIso(r.inicio).getDay()])[0]]}` : `RRULE:FREQ=MONTHLY;BYMONTHDAY=${deIso(r.inicio).getDate()}`;
 }
 /** Link "adicionar ao Google Agenda" já com nome, horário e repetição (não precisa de permissão nenhuma). */
 export function linkGoogleAgenda(r: Ritual) {

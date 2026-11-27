@@ -13,3 +13,9 @@ test('agenda: hoje, atraso e check',()=>{const r={...base,repete:'semanal',dias:
  let a=agenda([r],'2026-11-24');assert.equal(a.hoje.length,0);assert.equal(a.atrasados[0].dia,'2026-11-20');assert.equal(a.proximos[0].dia,'2026-11-27');
  const feito=marcar(r,'2026-11-20','Yas');a=agenda([feito],'2026-11-24');assert.equal(a.atrasados.length,0);assert.equal(feito.feitos[0].por,'Yas');
  assert.equal(marcar(feito,'2026-11-20').feitos.length,0);});
+test('mensal por dia da semana (1ª sexta, último sábado)',async()=>{const {ocorre,proxima,rrule,descreverRepeticao}=await import('../src/rituais-logic.ts');
+ const r={id:'m',nome:'Faxina',cat:'Limpeza',resp:'Ambos',feitos:[],repete:'mensal',ordinal:1,dias:[5],inicio:'2026-11-01'};
+ assert.equal(ocorre(r,'2026-11-06'),true);assert.equal(ocorre(r,'2026-11-13'),false);assert.equal(proxima(r,'2026-11-27'),'2026-12-04');
+ assert.equal(rrule(r),'RRULE:FREQ=MONTHLY;BYDAY=1FR');assert.equal(descreverRepeticao(r),'Todo mês, 1ª sexta-feira');
+ const u={...r,ordinal:-1,dias:[6]};assert.equal(ocorre(u,'2026-11-28'),true);assert.equal(ocorre(u,'2026-11-21'),false);assert.equal(descreverRepeticao(u),'Todo mês, último sábado');
+ const s2={...r,ordinal:2,dias:[5]};assert.equal(proxima(s2,'2026-11-27'),'2026-12-11');});

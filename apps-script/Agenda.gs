@@ -17,7 +17,20 @@ function compartilharAgenda(cal, email) {
   try { Calendar.Acl.insert({ role: 'writer', scope: { type: 'user', value: email } }, cal.getId(), { sendNotifications: true }); return true; }
   catch (e) { if (/already|duplicate|exist/i.test(String(e))) return true; throw new Error('Não consegui compartilhar a agenda: ' + e.message); }
 }
+/** "1ª sexta do mês", "último sábado": o CalendarApp não sabe; usa a API avançada do Google Agenda. */
+function criarMensalPorSemana(cal, r) {
+  const DIA = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'], p = String(r.primeira || r.inicio), wd = DIA[(r.dias && r.dias.length ? r.dias[0] : new Date(p + 'T12:00:00').getDay())];
+  const titulo = ((AGENDA_EMOJI[r.cat] || '') + ' ' + String(r.nome).slice(0, 80) + (r.resp && r.resp !== 'Ambos' ? ' (' + r.resp + ')' : '')).trim();
+  const lemb = (Array.isArray(r.lembretes) ? r.lembretes : []).slice(0, 3).filter(function (m) { return m >= 0 && m <= 40320; }).map(function (m) { return { method: 'popup', minutes: Number(m) }; });
+  const ev = { summary: titulo, description: 'Ritual do AleYas: marque como feito no app.' + (r.nota ? '\n' + String(r.nota).slice(0, 300) : ''), recurrence: ['RRULE:FREQ=MONTHLY;BYDAY=' + r.ordinal + wd], reminders: { useDefault: false, overrides: lemb } };
+  if (r.hora && /^\d\d:\d\d$/.test(r.hora)) { const hm = r.hora.split(':').map(Number), fimMin = hm[0] * 60 + hm[1] + Math.max(5, Math.min(720, Number(r.dur) || 60)); const f = ('0' + Math.floor(fimMin / 60) % 24).slice(-2) + ':' + ('0' + fimMin % 60).slice(-2);
+    ev.start = { dateTime: p + 'T' + r.hora + ':00', timeZone: 'America/Sao_Paulo' }; ev.end = { dateTime: p + 'T' + f + ':00', timeZone: 'America/Sao_Paulo' }; }
+  else { const amanha = Utilities.formatDate(new Date(new Date(p + 'T12:00:00').getTime() + 864e5), 'America/Sao_Paulo', 'yyyy-MM-dd'); ev.start = { date: p }; ev.end = { date: amanha }; }
+  const criado = Calendar.Events.insert(ev, cal.getId());
+  return { getId: function () { return criado.iCalUID; } };
+}
 function criarSerie(cal, r, yas) {
+  if (r.repete === 'mensal' && r.ordinal) return criarMensalPorSemana(cal, r);
   const DIAS = [CalendarApp.Weekday.SUNDAY, CalendarApp.Weekday.MONDAY, CalendarApp.Weekday.TUESDAY, CalendarApp.Weekday.WEDNESDAY, CalendarApp.Weekday.THURSDAY, CalendarApp.Weekday.FRIDAY, CalendarApp.Weekday.SATURDAY];
   const rec = CalendarApp.newRecurrence();
   if (r.repete === 'diario') rec.addDailyRule();
@@ -47,7 +60,7 @@ function sincronizarAgenda(p) {
     const rs = Array.isArray(p.rituais) ? p.rituais.slice(0, 200) : [];
     rs.forEach(function (r) {
       if (!r || !r.id || !r.nome || r.pausado) return;
-      const h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify([r.nome, r.cat, r.resp, r.repete, r.cada, r.dias, r.hora, r.dur, r.inicio, r.nota, r.lembretes]), Utilities.Charset.UTF_8));
+      const h = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify([r.nome, r.cat, r.resp, r.repete, r.cada, r.dias, r.hora, r.dur, r.inicio, r.nota, r.lembretes, r.ordinal]), Utilities.Charset.UTF_8));
       const id = String(r.id).slice(0, 60); vivos[id] = 1; const atual = mapa[id];
       if (atual && atual.h === h) { try { if (cal.getEventSeriesById(atual.ev) || cal.getEventById(atual.ev)) return; } catch (e) { /* recria */ } }
       if (atual) apagarSerie(cal, atual.ev);
@@ -72,7 +85,7 @@ function ocorreRitual(r, dia) {
     case 'dias': return dif % Math.max(1, r.cada || 1) === 0;
     case 'semanal': return dias.indexOf(d.getDay()) >= 0;
     case 'quinzenal': { if (dias.indexOf(d.getDay()) < 0) return false; const dom = new Date(ini.getTime() - ini.getDay() * 864e5); return Math.floor(Math.round((d - dom) / 864e5) / 7) % 2 === 0; }
-    case 'mensal': { const ult = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); return d.getDate() === Math.min(ini.getDate(), ult); }
+    case 'mensal': { const ult = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); if (r.ordinal) return d.getDay() === dias[0] && (r.ordinal > 0 ? Math.ceil(d.getDate() / 7) === r.ordinal : d.getDate() + 7 > ult); return d.getDate() === Math.min(ini.getDate(), ult); }
   }
   return false;
 }

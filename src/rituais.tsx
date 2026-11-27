@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Check, Plus, X, CalendarPlus, Pause, Play, Pencil, Trash2, Loader2, CalendarCheck, RefreshCw, Clock } from 'lucide-react';
-import { LEMBRETES_HORA, LEMBRETES_DIA, descreverLembretes, CATS_RITUAL, EMOJI_CAT, DIAS_SEMANA, agenda, marcar, descreverRepeticao, linkGoogleAgenda, constancia, iso, deIso, proxima, type Ritual, type Repete } from './rituais-logic';
+import { ORDINAIS, LEMBRETES_HORA, LEMBRETES_DIA, descreverLembretes, CATS_RITUAL, EMOJI_CAT, DIAS_SEMANA, agenda, marcar, descreverRepeticao, linkGoogleAgenda, constancia, iso, deIso, proxima, type Ritual, type Repete } from './rituais-logic';
 import { quem } from './quem';
 import RituaisCalendario, { useVistaRituais } from './rituais-cal';
 import { api } from './api';
@@ -77,7 +77,7 @@ function AgendaCard({ data, rituais }: { data: any; rituais: Ritual[] }) {
   const [st, setSt] = useState<{ ligada: boolean; convidada: string } | null>(null), [rodando, setRodando] = useState(false), [msg, setMsg] = useState(''), [email, setEmail] = useState('');
   useEffect(() => { api.statusAgenda().then(r => setSt({ ligada: r.ligada, convidada: r.convidada })).catch(e => setMsg(/agenda|calendar|autoriz|permiss/i.test(e.message) ? 'A agenda ainda não foi autorizada no Google.' : '')); }, []);
   // Sincroniza sozinho quando os rituais mudam (com uma pausa, para juntar várias edições)
-  const assinatura = JSON.stringify(rituais.map(r => [r.id, r.nome, r.cat, r.resp, r.repete, r.cada, r.dias, r.hora, r.dur, r.inicio, r.pausado, r.nota, r.lembretes]));
+  const assinatura = JSON.stringify(rituais.map(r => [r.id, r.nome, r.cat, r.resp, r.repete, r.cada, r.dias, r.hora, r.dur, r.inicio, r.pausado, r.nota, r.lembretes, r.ordinal]));
   useEffect(() => { if (!st?.ligada) return; const t = setTimeout(() => sincronizar(), 2500); return () => clearTimeout(t); }, [assinatura, st?.ligada]);
   async function sincronizar(yas?: string) {
     setRodando(true); setMsg('');
@@ -97,14 +97,15 @@ function AgendaCard({ data, rituais }: { data: any; rituais: Ritual[] }) {
 function Form({ inicial, busy, onClose, onSave, onApagar }: { inicial: Partial<Ritual>; busy: boolean; onClose: () => void; onSave: (r: Ritual) => void; onApagar?: () => void }) {
   const [r, setR] = useState<Partial<Ritual>>(() => ({ cat: 'Casa', resp: 'Ambos', repete: 'semanal', inicio: iso(new Date()), feitos: [], lembretes: inicial.hora ? [30] : [900], ...inicial, dias: inicial.dias || (inicial.repete === 'semanal' || inicial.repete === 'quinzenal' || !inicial.repete ? [new Date().getDay()] : undefined) }));
   const set = (p: Partial<Ritual>) => setR(v => ({ ...v, ...p }));
-  const comDias = r.repete === 'semanal' || r.repete === 'quinzenal';
+  const porSemanaDoMes = r.repete === 'mensal' && !!r.ordinal;
+  const comDias = r.repete === 'semanal' || r.repete === 'quinzenal' || porSemanaDoMes;
   useEffect(() => { const esc = (e: KeyboardEvent) => e.key === 'Escape' && onClose(); addEventListener('keydown', esc); return () => removeEventListener('keydown', esc); }, []);
   function enviar(e: React.FormEvent) {
     e.preventDefault(); if (!r.nome?.trim()) return;
-    const dias = comDias ? (r.dias?.length ? [...r.dias].sort() : [deIso(r.inicio!).getDay()]) : undefined;
+    const dias = comDias ? (porSemanaDoMes ? [(r.dias?.length ? r.dias : [deIso(r.inicio!).getDay()])[0]] : r.dias?.length ? [...r.dias].sort() : [deIso(r.inicio!).getDay()]) : undefined;
     // Para "toda semana", o início vira o primeiro dia marcado, para a agenda começar no dia certo
     const out: Ritual = { id: r.id || 'rit-' + Date.now().toString(36), nome: r.nome.trim().slice(0, 80), cat: r.cat || 'Casa', resp: r.resp || 'Ambos', repete: r.repete || 'semanal', inicio: r.inicio || iso(new Date()), feitos: r.feitos || [],
-      ...(r.repete === 'dias' ? { cada: Math.max(1, Math.min(365, r.cada || 2)) } : {}), ...(dias ? { dias } : {}), ...(r.hora ? { hora: r.hora, dur: r.dur || 60 } : {}), ...(r.lembretes?.length ? { lembretes: r.lembretes.filter(m => (r.hora ? LEMBRETES_HORA : LEMBRETES_DIA).some(o => o[0] === m)).slice(0, 3) } : {}), ...(r.pausado ? { pausado: true } : {}), ...(r.nota?.trim() ? { nota: r.nota.trim().slice(0, 300) } : {}), criado: r.criado || new Date().toISOString() };
+      ...(r.repete === 'dias' ? { cada: Math.max(1, Math.min(365, r.cada || 2)) } : {}), ...(porSemanaDoMes ? { ordinal: r.ordinal } : {}), ...(dias ? { dias } : {}), ...(r.hora ? { hora: r.hora, dur: r.dur || 60 } : {}), ...(r.lembretes?.length ? { lembretes: r.lembretes.filter(m => (r.hora ? LEMBRETES_HORA : LEMBRETES_DIA).some(o => o[0] === m)).slice(0, 3) } : {}), ...(r.pausado ? { pausado: true } : {}), ...(r.nota?.trim() ? { nota: r.nota.trim().slice(0, 300) } : {}), criado: r.criado || new Date().toISOString() };
     onSave(out);
   }
   return <div className="overlay" onClick={onClose}><section className="modal rit-form" role="dialog" aria-modal="true" aria-label="Ritual" onClick={e => e.stopPropagation()}>
@@ -115,10 +116,12 @@ function Form({ inicial, busy, onClose, onSave, onApagar }: { inicial: Partial<R
       <span className="rit-rot">Categoria</span><div className="chips">{CATS_RITUAL.map(c => <button type="button" key={c} className={r.cat === c ? 'selected' : ''} onClick={() => set({ cat: c })}>{EMOJI_CAT[c]} {c}</button>)}</div>
       <span className="rit-rot">Quem faz</span><div className="chips">{(['Ambos', 'Ale', 'Yas'] as const).map(p => <button type="button" key={p} className={r.resp === p ? 'selected' : ''} onClick={() => set({ resp: p })}>{p === 'Ambos' ? 'Os dois' : p}</button>)}</div>
       <span className="rit-rot">Repete</span><div className="chips">{REPETE.map(([k, t]) => <button type="button" key={k} className={r.repete === k ? 'selected' : ''} onClick={() => set({ repete: k, ...(k === 'semanal' || k === 'quinzenal' ? { dias: r.dias?.length ? r.dias : [deIso(r.inicio!).getDay()] } : {}) })}>{t}</button>)}</div>
-      {comDias && <div className="rit-semana" role="group" aria-label="Dias da semana">{DIAS_SEMANA.map((d, i) => <button type="button" key={d} aria-pressed={!!r.dias?.includes(i)} className={r.dias?.includes(i) ? 'on' : ''} onClick={() => set({ dias: r.dias?.includes(i) ? r.dias.filter(x => x !== i) : [...(r.dias || []), i] })}>{d}</button>)}</div>}
+      {r.repete === 'mensal' && <><div className="chips"><button type="button" className={!r.ordinal ? 'selected' : ''} onClick={() => set({ ordinal: undefined })}>No dia {deIso(r.inicio!).getDate()}</button><button type="button" className={r.ordinal ? 'selected' : ''} onClick={() => set({ ordinal: r.ordinal || 1, dias: [r.dias?.[0] ?? 5] })}>Num dia da semana</button></div>
+        {porSemanaDoMes && <><span className="rit-rot">Qual semana do mês</span><div className="rit-semana rit-ordinal">{ORDINAIS.map(([o, t]) => <button type="button" key={o} aria-pressed={r.ordinal === o} className={r.ordinal === o ? 'on' : ''} onClick={() => set({ ordinal: o })}>{t}</button>)}</div><span className="rit-rot">Dia da semana</span></>}</>}
+      {comDias && <div className="rit-semana" role="group" aria-label="Dias da semana">{DIAS_SEMANA.map((d, i) => <button type="button" key={d} aria-pressed={!!r.dias?.includes(i)} className={r.dias?.includes(i) ? 'on' : ''} onClick={() => set({ dias: porSemanaDoMes ? [i] : r.dias?.includes(i) ? r.dias.filter(x => x !== i) : [...(r.dias || []), i] })}>{d}</button>)}</div>}
       {r.repete === 'dias' && <label>A cada quantos dias<input type="number" min={1} max={365} value={r.cada || 2} onChange={e => set({ cada: +e.target.value })} /></label>}
       <div className="form-grid">
-        <label>{r.repete === 'unica' ? 'Dia' : r.repete === 'mensal' ? 'Começa em (dia do mês)' : 'Começa em'}<input type="date" value={r.inicio} onChange={e => set({ inicio: e.target.value || iso(new Date()) })} /></label>
+        <label>{r.repete === 'unica' ? 'Dia' : r.repete === 'mensal' && !r.ordinal ? 'Começa em (dia do mês)' : 'Começa em'}<input type="date" value={r.inicio} onChange={e => set({ inicio: e.target.value || iso(new Date()) })} /></label>
         <label>Horário (opcional)<input type="time" value={r.hora || ''} onChange={e => set({ hora: e.target.value || undefined, lembretes: e.target.value ? (r.hora ? r.lembretes : [30]) : (r.hora ? [900] : r.lembretes) })} /></label>
       </div>
       {r.hora && <label>Duração<select value={r.dur || 60} onChange={e => set({ dur: +e.target.value })}>{DURS.map(d => <option key={d} value={d}>{d < 60 ? d + ' min' : d / 60 + (d === 60 ? ' hora' : ' horas').replace('.5', ',5')}</option>)}</select></label>}

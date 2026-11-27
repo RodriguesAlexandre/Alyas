@@ -596,3 +596,5 @@ html.escuro .rcal-col,html.escuro .rcal-dia{background:#22241f}html.escuro .rcal
 .catalog-grid{gap:8px!important}
 .catalog-product-top .product-icon{width:42px!important;height:42px!important;min-width:42px;border-radius:12px}
 .supply-action{white-space:nowrap;font-size:11.5px!important;gap:4px!important}.supply-action svg{width:15px;height:15px;flex-shrink:0}
+.rit-ordinal{grid-template-columns:repeat(5,1fr)!important}
+.rit-form .chips{flex-wrap:wrap!important;overflow:visible!important}
